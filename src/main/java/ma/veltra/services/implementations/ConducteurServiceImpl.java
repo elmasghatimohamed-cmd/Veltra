@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import ma.veltra.dto.request.ConducteurCreateRequest;
 import ma.veltra.dto.response.ConducteurResponse;
 import ma.veltra.entities.Conducteur;
+import ma.veltra.exceptions.ResourceAlreadyExistsException;
 import ma.veltra.mappers.ConducteurMapper;
 import ma.veltra.repositories.ConducteurRepository;
 import ma.veltra.services.ConducteurService;
@@ -22,13 +23,13 @@ public class ConducteurServiceImpl implements ConducteurService {
     public ConducteurResponse create(ConducteurCreateRequest request) {
 
         if (conducteurRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException(
+            throw new ResourceAlreadyExistsException(
                     "Un conducteur avec cet email existe déjà"
             );
         }
 
         if (conducteurRepository.existsByNumeroPermis(request.numeroPermis())) {
-            throw new IllegalArgumentException(
+            throw new ResourceAlreadyExistsException(
                     "Un conducteur avec ce numéro de permis existe déjà"
             );
         }

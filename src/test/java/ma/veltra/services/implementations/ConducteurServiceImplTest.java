@@ -3,6 +3,7 @@ package ma.veltra.services.implementations;
 import ma.veltra.dto.request.ConducteurCreateRequest;
 import ma.veltra.dto.response.ConducteurResponse;
 import ma.veltra.entities.Conducteur;
+import ma.veltra.exceptions.ResourceAlreadyExistsException;
 import ma.veltra.mappers.ConducteurMapper;
 import ma.veltra.repositories.ConducteurRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -90,8 +91,8 @@ class ConducteurServiceImplTest {
         when(conducteurRepository.existsByEmail(request.email()))
                 .thenReturn(true);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ResourceAlreadyExistsException exception = assertThrows(
+                ResourceAlreadyExistsException.class,
                 () -> conducteurService.create(request)
         );
 
@@ -114,8 +115,8 @@ class ConducteurServiceImplTest {
 
         when(conducteurRepository.existsByNumeroPermis(request.numeroPermis()))
                 .thenReturn(true);
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ResourceAlreadyExistsException exception = assertThrows(
+                ResourceAlreadyExistsException.class,
                 () -> conducteurService.create(request)
         );
 
