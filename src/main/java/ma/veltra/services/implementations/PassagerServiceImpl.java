@@ -12,6 +12,8 @@ import ma.veltra.services.PassagerService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class PassagerServiceImpl implements PassagerService {
@@ -41,5 +43,14 @@ public class PassagerServiceImpl implements PassagerService {
                 ));
 
         return passagerMapper.toResponse(passager);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PassagerResponse> findAll() {
+        return passagerRepository.findAll()
+                .stream()
+                .map(passagerMapper::toResponse)
+                .toList();
     }
 }

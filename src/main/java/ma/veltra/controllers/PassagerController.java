@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/passagers")
@@ -30,5 +32,10 @@ public class PassagerController {
             @PathVariable Long id
     ) {
         return ResponseEntity.ok(passagerService.findById(id));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<PassagerResponse>> findAll() {
+        return ResponseEntity.ok(passagerService.findAll());
     }
 }
