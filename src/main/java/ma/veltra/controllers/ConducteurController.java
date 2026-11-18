@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/conducteurs")
 @RequiredArgsConstructor
@@ -34,5 +36,10 @@ public class ConducteurController {
         return  ResponseEntity
                 .status(HttpStatus.OK)
                 .body(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<ConducteurResponse>> findAll(){
+        return ResponseEntity.ok(conducteurService.findAll());
     }
 }

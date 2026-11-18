@@ -12,6 +12,8 @@ import ma.veltra.repositories.ConducteurRepository;
 import ma.veltra.services.ConducteurService;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ConducteurServiceImpl implements ConducteurService {
@@ -49,5 +51,14 @@ public class ConducteurServiceImpl implements ConducteurService {
                         "Conducteur introuvable avec l'identifiant : " + id
                 ));
         return conducteurMapper.toResponse(conducteur);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConducteurResponse> findAll() {
+        return conducteurRepository.findAll()
+                .stream()
+                .map(conducteurMapper::toResponse)
+                .toList();
     }
 }
