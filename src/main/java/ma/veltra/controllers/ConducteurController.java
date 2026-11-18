@@ -3,6 +3,7 @@ package ma.veltra.controllers;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import ma.veltra.dto.request.ConducteurCreateRequest;
+import ma.veltra.dto.request.ConducteurUpdateRequest;
 import ma.veltra.dto.response.ConducteurResponse;
 import ma.veltra.services.ConducteurService;
 import org.springframework.http.HttpStatus;
@@ -49,5 +50,16 @@ public class ConducteurController {
             @RequestParam(required = false) String email
     ){
         return ResponseEntity.ok(conducteurService.search(nom, email));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ConducteurResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody ConducteurUpdateRequest request
+    ){
+        ConducteurResponse response = conducteurService.update(id,  request);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(response);
     }
 }

@@ -1,5 +1,6 @@
 package ma.veltra.services.implementations;
 
+import ma.veltra.dto.request.ConducteurUpdateRequest;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import ma.veltra.dto.request.ConducteurCreateRequest;
@@ -82,5 +83,45 @@ public class ConducteurServiceImpl implements ConducteurService {
         return conducteurs.stream()
                 .map(conducteurMapper::toResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public ConducteurResponse update(
+            Long id,
+            ConducteurUpdateRequest request
+    ){
+        Conducteur conducteur = conducteurRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Conducteur introuvable avec l'identifiant : " + id
+                ));
+
+        if (request.email() != null
+                && !request.email().equals(conducteur.getEmail())
+                && conducteurRepository.existsByEmail(request.email())) {
+
+            throw new ResourceAlreadyExistsException(
+                    "Un conducteur avec cet email existe déjà"
+            );
+        }
+
+        if (request.numeroPermis() != null
+                && !request.numeroPermis().equals(conducteur.getNumeroPermis())
+                && conducteurRepository.existsByNumeroPermis(request.numeroPermis())) {
+
+            throw new ResourceAlreadyExistsException(
+                    "Un conducteur avec ce numéro de permis existe déjà"
+            );
+        }
+
+        conducteur.modifierInformations(
+                request.nom(),
+                request.prenom(),
+                request.email(),
+                request.telephone(),
+                request.numeroPermis()
+        );
+
+        return conducteurMapper.toResponse(conducteur);
     }
 }

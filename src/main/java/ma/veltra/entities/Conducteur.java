@@ -67,4 +67,34 @@ public class Conducteur {
         this.email = email;
         this.telephone = telephone;
     }
+
+
+    public void modifierInformations(
+            String nom,
+            String prenom,
+            String email,
+            String telephone,
+            String numeroPermis
+    ) {
+        if (nom != null) {
+            this.nom = nom;
+        }
+
+        if (prenom != null) {
+            this.prenom = prenom;
+        }
+
+        if (email != null) {
+            this.email = email;
+        }
+
+        if (telephone != null) {
+            this.telephone = telephone;
+        }
+
+        if (numeroPermis != null) {
+            this.numeroPermis = numeroPermis;
+        }
+    }
+
 }
