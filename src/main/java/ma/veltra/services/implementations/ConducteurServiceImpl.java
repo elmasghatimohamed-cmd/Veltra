@@ -1,11 +1,12 @@
 package ma.veltra.services.implementations;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import ma.veltra.dto.request.ConducteurCreateRequest;
 import ma.veltra.dto.response.ConducteurResponse;
 import ma.veltra.entities.Conducteur;
 import ma.veltra.exceptions.ResourceAlreadyExistsException;
+import ma.veltra.exceptions.ResourceNotFoundException;
 import ma.veltra.mappers.ConducteurMapper;
 import ma.veltra.repositories.ConducteurRepository;
 import ma.veltra.services.ConducteurService;
@@ -37,5 +38,16 @@ public class ConducteurServiceImpl implements ConducteurService {
         Conducteur conducteur = conducteurMapper.toEntity(request);
         Conducteur savedConducteur = conducteurRepository.save(conducteur);
         return conducteurMapper.toResponse(savedConducteur);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ConducteurResponse findById(Long id) {
+
+        Conducteur conducteur = conducteurRepository.findById(id)
+                .orElseThrow(()-> new ResourceNotFoundException(
+                        "Conducteur introuvable avec l'identifiant : " + id
+                ));
+        return conducteurMapper.toResponse(conducteur);
     }
 }

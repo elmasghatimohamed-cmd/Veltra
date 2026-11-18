@@ -3,6 +3,7 @@ package ma.veltra.controllers;
 import ma.veltra.dto.response.ConducteurResponse;
 import ma.veltra.exceptions.GlobalExceptionHandler;
 import ma.veltra.exceptions.ResourceAlreadyExistsException;
+import ma.veltra.exceptions.ResourceNotFoundException;
 import ma.veltra.services.ConducteurService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -95,4 +97,46 @@ class ConducteurControllerTest {
 
         verifyNoInteractions(conducteurService);
     }
+
+    @Test
+    void shouldReturn200WhenDriverExists() throws Exception {
+        ConducteurResponse response = new ConducteurResponse(
+                1L,
+                "El Masghati",
+                "Mohamed",
+                "mohamed@example.com",
+                "0611111111",
+                "PERMIS123"
+        );
+
+        when(conducteurService.findById(1L))
+                .thenReturn(response);
+
+        mockMvc.perform(get("/api/conducteurs/{id}", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.nom").value("El Masghati"))
+                .andExpect(jsonPath("$.email")
+                        .value("mohamed@example.com"));
+
+        verify(conducteurService).findById(1L);
+    }
+
+    @Test
+    void shouldReturn404WhenDriverDoesNotExist() throws Exception {
+        when(conducteurService.findById(999L))
+                .thenThrow(new ResourceNotFoundException(
+                        "Conducteur introuvable avec l'identifiant : 999"
+                ));
+
+        mockMvc.perform(get("/api/conducteurs/{id}", 999L))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.detail").value(
+                        "Conducteur introuvable avec l'identifiant : 999"
+                ));
+
+        verify(conducteurService).findById(999L);
+    }
+
 }

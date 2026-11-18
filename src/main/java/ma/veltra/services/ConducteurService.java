@@ -6,4 +6,6 @@ import ma.veltra.dto.response.ConducteurResponse;
 public interface ConducteurService {
 
     ConducteurResponse create(ConducteurCreateRequest request);
+
+    ConducteurResponse findById(Long id);
 }

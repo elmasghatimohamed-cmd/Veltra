@@ -7,10 +7,7 @@ import ma.veltra.dto.response.ConducteurResponse;
 import ma.veltra.services.ConducteurService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/conducteurs")
@@ -26,6 +23,16 @@ public class ConducteurController {
         ConducteurResponse response = conducteurService.create(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
+                .body(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ConducteurResponse> findById(
+            @PathVariable Long id
+    ){
+        ConducteurResponse response = conducteurService.findById(id);
+        return  ResponseEntity
+                .status(HttpStatus.OK)
                 .body(response);
     }
 }

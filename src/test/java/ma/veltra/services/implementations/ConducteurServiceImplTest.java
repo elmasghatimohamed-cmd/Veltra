@@ -4,6 +4,7 @@ import ma.veltra.dto.request.ConducteurCreateRequest;
 import ma.veltra.dto.response.ConducteurResponse;
 import ma.veltra.entities.Conducteur;
 import ma.veltra.exceptions.ResourceAlreadyExistsException;
+import ma.veltra.exceptions.ResourceNotFoundException;
 import ma.veltra.mappers.ConducteurMapper;
 import ma.veltra.repositories.ConducteurRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -128,4 +131,64 @@ class ConducteurServiceImplTest {
         verify(conducteurRepository, never())
                 .save(any(Conducteur.class));
     }
+
+
+    @Test
+    void shouldFindDriverById() {
+        Long id = 1L;
+
+        Conducteur conducteur = new Conducteur(
+                "El Masghati",
+                "Mohamed",
+                "mohamed@example.com",
+                "0611111111",
+                "PERMIS123"
+        );
+
+        ConducteurResponse response = new ConducteurResponse(
+                id,
+                "El Masghati",
+                "Mohamed",
+                "mohamed@example.com",
+                "0611111111",
+                "PERMIS123"
+        );
+
+        when(conducteurRepository.findById(id))
+                .thenReturn(Optional.of(conducteur));
+
+        when(conducteurMapper.toResponse(conducteur))
+                .thenReturn(response);
+
+        ConducteurResponse result = conducteurService.findById(id);
+
+        assertNotNull(result);
+        assertEquals(id, result.id());
+        assertEquals("mohamed@example.com", result.email());
+
+        verify(conducteurRepository).findById(id);
+        verify(conducteurMapper).toResponse(conducteur);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenDriverNotFound() {
+        Long id = 999L;
+
+        when(conducteurRepository.findById(id))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> conducteurService.findById(id)
+        );
+
+        assertEquals(
+                "Conducteur introuvable avec l'identifiant : 999",
+                exception.getMessage()
+        );
+
+        verify(conducteurRepository).findById(id);
+        verifyNoInteractions(conducteurMapper);
+    }
+
 }
