@@ -38,4 +38,12 @@ public class PassagerController {
     public ResponseEntity<List<PassagerResponse>> findAll() {
         return ResponseEntity.ok(passagerService.findAll());
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<PassagerResponse>> search(
+            @RequestParam(required = false) String nom,
+            @RequestParam(required = false) String email
+    ) {
+        return ResponseEntity.ok(passagerService.search(nom, email));
+    }
 }

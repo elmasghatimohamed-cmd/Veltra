@@ -12,4 +12,6 @@ public interface PassagerService {
     PassagerResponse findById(Long id);
 
     List<PassagerResponse> findAll();
+
+    List<PassagerResponse> search(String nom, String email);
 }

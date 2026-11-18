@@ -53,4 +53,26 @@ public class PassagerServiceImpl implements PassagerService {
                 .map(passagerMapper::toResponse)
                 .toList();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PassagerResponse> search(String nom, String email) {
+
+        boolean hasNom = nom != null && !nom.isBlank();
+        boolean hasEmail = email != null && !email.isBlank();
+
+        if (hasNom == hasEmail) {
+            throw new IllegalArgumentException(
+                    "Veuillez fournir uniquement un critère : nom ou email"
+            );
+        }
+
+        List<Passager> passagers = hasNom
+                ? passagerRepository.findByNomContainingIgnoreCase(nom.trim())
+                : passagerRepository.findByEmailContainingIgnoreCase(email.trim());
+
+        return passagers.stream()
+                .map(passagerMapper::toResponse)
+                .toList();
+    }
 }
