@@ -8,6 +8,7 @@ import ma.veltra.entities.Conducteur;
 import ma.veltra.entities.PointArret;
 import ma.veltra.entities.Trajet;
 import ma.veltra.entities.Vehicule;
+import ma.veltra.enums.StatutTrajet;
 import ma.veltra.exceptions.ResourceNotFoundException;
 import ma.veltra.mappers.TrajetMapper;
 import ma.veltra.repositories.ConducteurRepository;
@@ -137,6 +138,55 @@ public class TrajetServiceImpl implements TrajetService {
                 .stream()
                 .map(trajetMapper::toResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public TrajetResponse annuler(Long trajetId) {
+
+        Trajet trajet = trajetRepository.findById(trajetId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Trajet introuvable : " + trajetId
+                ));
+
+        if (trajet.getStatut() != StatutTrajet.PUBLIE
+                && trajet.getStatut() != StatutTrajet.COMPLET) {
+            throw new IllegalStateException(
+                    "Seul un trajet publié ou complet peut etre annulé"
+            );
+        }
+
+        trajet.marquerAnnule();
+
+        return trajetMapper.toResponse(trajet);
+    }
+
+    @Override
+    @Transactional
+    public TrajetResponse terminer(Long trajetId) {
+
+        Trajet trajet = trajetRepository.findById(trajetId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Trajet introuvable : " + trajetId
+                ));
+
+        if (trajet.getStatut() != StatutTrajet.PUBLIE
+                && trajet.getStatut() != StatutTrajet.COMPLET) {
+            throw new IllegalStateException(
+                    "Seul un trajet publié ou complet peut etre terminé"
+            );
+        }
+
+
+        if (trajet.getDateDepart().isAfter(LocalDateTime.now())) {
+            throw new IllegalStateException(
+                    "Impossible de terminer un trajet avant son départ"
+            );
+        }
+
+        trajet.marquerTermine();
+
+        return trajetMapper.toResponse(trajet);
     }
 
     //Helper methods

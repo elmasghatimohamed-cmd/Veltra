@@ -12,4 +12,8 @@ public interface TrajetService {
     TrajetResponse findById(Long id);
 
     List<TrajetResponse> findByConducteurId(Long conducteurId);
+
+    TrajetResponse annuler(Long trajetId);
+
+    TrajetResponse terminer(Long trajetId);
 }
