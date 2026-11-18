@@ -42,4 +42,12 @@ public class ConducteurController {
     public ResponseEntity<List<ConducteurResponse>> findAll(){
         return ResponseEntity.ok(conducteurService.findAll());
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<ConducteurResponse>> search(
+            @RequestParam(required = false) String nom,
+            @RequestParam(required = false) String email
+    ){
+        return ResponseEntity.ok(conducteurService.search(nom, email));
+    }
 }

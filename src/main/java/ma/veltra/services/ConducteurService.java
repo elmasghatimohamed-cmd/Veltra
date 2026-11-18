@@ -12,4 +12,6 @@ public interface ConducteurService {
     ConducteurResponse findById(Long id);
 
     List<ConducteurResponse> findAll();
+
+    List<ConducteurResponse> search(String nom, String email);
 }

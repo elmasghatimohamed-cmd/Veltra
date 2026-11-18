@@ -61,4 +61,26 @@ public class ConducteurServiceImpl implements ConducteurService {
                 .map(conducteurMapper::toResponse)
                 .toList();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConducteurResponse> search(String nom, String email) {
+
+        boolean hasNom = nom != null && !nom.isEmpty();
+        boolean hasEmail = email != null && !email.isEmpty();
+
+        if (hasNom == hasEmail) {
+            throw new IllegalArgumentException(
+                  "Veuillez fournir uniquement un critère de recherche: nom ou email"
+            );
+        }
+
+        List<Conducteur> conducteurs = hasNom
+                ? conducteurRepository.findByNomContainingIgnoreCase(nom.trim())
+                : conducteurRepository.findByEmailContainingIgnoreCase(email.trim());
+
+        return conducteurs.stream()
+                .map(conducteurMapper::toResponse)
+                .toList();
+    }
 }
