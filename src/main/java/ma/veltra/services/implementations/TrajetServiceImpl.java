@@ -189,6 +189,43 @@ public class TrajetServiceImpl implements TrajetService {
         return trajetMapper.toResponse(trajet);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<TrajetResponse> rechercherTrajets(
+            String villeDepart,
+            String villeArrivee,
+            LocalDateTime dateDepart
+    ) {
+        if (villeDepart == null || villeDepart.isBlank()
+                || villeArrivee == null || villeArrivee.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Les villes de départ et d'arrivée sont obligatoires"
+            );
+        }
+
+        if (villeDepart.trim().equalsIgnoreCase(villeArrivee.trim())) {
+            throw new IllegalArgumentException(
+                    "Les villes de départ et d'arrivée doivent être différentes"
+            );
+        }
+
+        if (dateDepart == null) {
+            throw new IllegalArgumentException(
+                    "La date de départ est obligatoire"
+            );
+        }
+
+        return trajetRepository.rechercherTrajets(
+                        villeDepart.trim(),
+                        villeArrivee.trim(),
+                        dateDepart,
+                        StatutTrajet.PUBLIE
+                )
+                .stream()
+                .map(trajetMapper::toResponse)
+                .toList();
+    }
+
     //Helper methods
     private void validerOrdrePointsArret(
             List<PointArretCreateRequest> pointsArret
