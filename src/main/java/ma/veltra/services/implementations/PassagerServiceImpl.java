@@ -5,6 +5,7 @@ import ma.veltra.dto.request.PassagerCreateRequest;
 import ma.veltra.dto.response.PassagerResponse;
 import ma.veltra.entities.Passager;
 import ma.veltra.exceptions.ResourceAlreadyExistsException;
+import ma.veltra.exceptions.ResourceNotFoundException;
 import ma.veltra.mappers.PassagerMapper;
 import ma.veltra.repositories.PassagerRepository;
 import ma.veltra.services.PassagerService;
@@ -29,5 +30,16 @@ public class PassagerServiceImpl implements PassagerService {
         Passager passager = passagerMapper.toEntity(request);
         Passager savedPassager = passagerRepository.save(passager);
         return passagerMapper.toResponse(savedPassager);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PassagerResponse findById(Long id) {
+        Passager passager = passagerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Passager introuvable avec l'identifiant : " + id
+                ));
+
+        return passagerMapper.toResponse(passager);
     }
 }
