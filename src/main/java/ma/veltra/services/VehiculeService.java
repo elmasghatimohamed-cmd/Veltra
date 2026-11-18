@@ -15,4 +15,6 @@ public interface VehiculeService {
     List<VehiculeResponse> findByConducteurId(Long conducteurId);
 
     VehiculeResponse update(Long id, VehiculeUpdateRequest request);
+
+    void delete(Long id);
 }

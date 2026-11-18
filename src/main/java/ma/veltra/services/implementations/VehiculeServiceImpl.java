@@ -10,6 +10,7 @@ import ma.veltra.exceptions.ResourceAlreadyExistsException;
 import ma.veltra.exceptions.ResourceNotFoundException;
 import ma.veltra.mappers.VehiculeMapper;
 import ma.veltra.repositories.ConducteurRepository;
+import ma.veltra.repositories.TrajetRepository;
 import ma.veltra.repositories.VehiculeRepository;
 import ma.veltra.services.VehiculeService;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import java.util.List;
 public class VehiculeServiceImpl implements VehiculeService {
 
     private final VehiculeRepository vehiculeRepository;
+    private final TrajetRepository trajetRepository;
     private final ConducteurRepository conducteurRepository;
     private final VehiculeMapper vehiculeMapper;
 
@@ -106,6 +108,26 @@ public class VehiculeServiceImpl implements VehiculeService {
         );
 
         return vehiculeMapper.toResponse(vehicule);
+    }
+
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+
+        Vehicule vehicule = vehiculeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Véhicule introuvable avec l'identifiant : " + id
+                ));
+
+        if (trajetRepository.existsByVehiculeId(id)) {
+            throw new IllegalStateException(
+                    "Impossible de supprimer ce vehicule: il est associe a un ou plusieurs trajets"
+            );
+        }
+
+        vehiculeRepository.delete(vehicule);
+        vehiculeRepository.flush();
     }
 
 }
