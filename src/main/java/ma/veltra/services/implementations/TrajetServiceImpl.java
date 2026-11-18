@@ -111,9 +111,35 @@ public class TrajetServiceImpl implements TrajetService {
         return trajetMapper.toResponse(saved);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public TrajetResponse findById(Long id) {
+
+        Trajet trajet = trajetRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Trajet introuvable : " + id
+                ));
+
+        return trajetMapper.toResponse(trajet);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TrajetResponse> findByConducteurId(Long conducteurId) {
+
+        if (!conducteurRepository.existsById(conducteurId)) {
+            throw new ResourceNotFoundException(
+                    "Conducteur introuvable : " + conducteurId
+            );
+        }
+
+        return trajetRepository.findByConducteurId(conducteurId)
+                .stream()
+                .map(trajetMapper::toResponse)
+                .toList();
+    }
 
     //Helper methods
-
     private void validerOrdrePointsArret(
             List<PointArretCreateRequest> pointsArret
     ) {
