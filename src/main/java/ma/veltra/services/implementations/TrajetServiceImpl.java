@@ -194,7 +194,8 @@ public class TrajetServiceImpl implements TrajetService {
     public List<TrajetResponse> rechercherTrajets(
             String villeDepart,
             String villeArrivee,
-            LocalDateTime dateDepart
+            LocalDateTime dateDepart,
+            BigDecimal prixMax
     ) {
         if (villeDepart == null || villeDepart.isBlank()
                 || villeArrivee == null || villeArrivee.isBlank()) {
@@ -215,11 +216,17 @@ public class TrajetServiceImpl implements TrajetService {
             );
         }
 
-        return trajetRepository.rechercherTrajets(
+        if (prixMax != null && prixMax.signum() < 0) {
+            throw new IllegalArgumentException(
+                    "Le prix maximal ne peut pas être négatif"
+            );
+        }
+        return trajetRepository.rechercherTrajetsAvecPrix(
                         villeDepart.trim(),
                         villeArrivee.trim(),
                         dateDepart,
-                        StatutTrajet.PUBLIE
+                        StatutTrajet.PUBLIE,
+                        prixMax
                 )
                 .stream()
                 .map(trajetMapper::toResponse)

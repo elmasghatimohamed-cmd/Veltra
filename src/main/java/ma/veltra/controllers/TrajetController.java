@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -67,13 +68,15 @@ public class TrajetController {
             @RequestParam String villeArrivee,
             @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            LocalDateTime dateDepart
+            LocalDateTime dateDepart,
+            @RequestParam(required = false) BigDecimal prixMax
     ) {
         return ResponseEntity.ok(
                 trajetService.rechercherTrajets(
                         villeDepart,
                         villeArrivee,
-                        dateDepart
+                        dateDepart,
+                        prixMax
                 )
         );
     }

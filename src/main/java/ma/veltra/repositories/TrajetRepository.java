@@ -12,6 +12,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -50,5 +51,28 @@ public interface TrajetRepository
             @Param("villeArrivee") String villeArrivee,
             @Param("dateDepart") LocalDateTime dateDepart,
             @Param("statut") StatutTrajet statut
+    );
+
+    @Query("""
+    SELECT DISTINCT t
+    FROM Trajet t
+    JOIN t.pointsArret montee
+    JOIN t.pointsArret descente
+    WHERE LOWER(montee.ville) = LOWER(:villeDepart)
+      AND LOWER(descente.ville) = LOWER(:villeArrivee)
+      AND montee.ordre < descente.ordre
+      AND t.dateDepart >= :dateDepart
+      AND t.statut = :statut
+      AND (
+          :prixMax IS NULL
+          OR (descente.prixDepuisDepart - montee.prixDepuisDepart) <= :prixMax
+      )
+    """)
+    List<Trajet> rechercherTrajetsAvecPrix(
+            @Param("villeDepart") String villeDepart,
+            @Param("villeArrivee") String villeArrivee,
+            @Param("dateDepart") LocalDateTime dateDepart,
+            @Param("statut") StatutTrajet statut,
+            @Param("prixMax") BigDecimal prixMax
     );
 }

@@ -3,6 +3,7 @@ package ma.veltra.services;
 import ma.veltra.dto.request.TrajetCreateRequest;
 import ma.veltra.dto.response.TrajetResponse;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,6 +22,7 @@ public interface TrajetService {
     List<TrajetResponse> rechercherTrajets(
             String villeDepart,
             String villeArrivee,
-            LocalDateTime dateDepart
+            LocalDateTime dateDepart,
+            BigDecimal prixMax
     );
 }
