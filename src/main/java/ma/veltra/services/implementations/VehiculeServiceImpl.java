@@ -14,6 +14,8 @@ import ma.veltra.services.VehiculeService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class VehiculeServiceImpl implements VehiculeService {
@@ -53,5 +55,33 @@ public class VehiculeServiceImpl implements VehiculeService {
         Vehicule savedVehicule = vehiculeRepository.save(vehicule);
 
         return vehiculeMapper.toResponse(savedVehicule);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public VehiculeResponse findById(Long id) {
+
+        Vehicule vehicule = vehiculeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Véhicule introuvable avec l'identifiant : " + id
+                ));
+
+        return vehiculeMapper.toResponse(vehicule);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VehiculeResponse> findByConducteurId(Long conducteurId) {
+
+        if (!conducteurRepository.existsById(conducteurId)) {
+            throw new ResourceNotFoundException(
+                    "Conducteur introuvable avec l'identifiant : " + conducteurId
+            );
+        }
+
+        return vehiculeRepository.findByConducteurId(conducteurId)
+                .stream()
+                .map(vehiculeMapper::toResponse)
+                .toList();
     }
 }
