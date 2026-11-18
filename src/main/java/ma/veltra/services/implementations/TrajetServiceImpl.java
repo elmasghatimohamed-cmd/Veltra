@@ -1,5 +1,6 @@
 package ma.veltra.services.implementations;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import ma.veltra.dto.request.PointArretCreateRequest;
 import ma.veltra.dto.request.TrajetCreateRequest;
@@ -15,17 +16,18 @@ import ma.veltra.repositories.ConducteurRepository;
 import ma.veltra.repositories.TrajetRepository;
 import ma.veltra.repositories.VehiculeRepository;
 import ma.veltra.services.TrajetService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -116,10 +118,12 @@ public class TrajetServiceImpl implements TrajetService {
     @Transactional(readOnly = true)
     public TrajetResponse findById(Long id) {
 
-        Trajet trajet = trajetRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Trajet introuvable : " + id
-                ));
+        Trajet trajet = trajetRepository.findDetailsById(id)
+                .orElseThrow(() ->
+                        new EntityNotFoundException(
+                                "Trajet introuvable avec l'ID : " + id
+                        )
+                );
 
         return trajetMapper.toResponse(trajet);
     }
@@ -191,46 +195,60 @@ public class TrajetServiceImpl implements TrajetService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TrajetResponse> rechercherTrajets(
+    public Page<TrajetResponse> rechercherTrajets(
             String villeDepart,
             String villeArrivee,
             LocalDateTime dateDepart,
-            BigDecimal prixMax
+            BigDecimal prixMax,
+            Pageable pageable
     ) {
-        if (villeDepart == null || villeDepart.isBlank()
-                || villeArrivee == null || villeArrivee.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Les villes de départ et d'arrivée sont obligatoires"
-            );
+        Pageable pagination = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                Sort.by(Sort.Direction.ASC, "dateDepart")
+        );
+
+        // 1. Recherche paginée
+        Page<Trajet> page = trajetRepository.rechercherTrajetsAvecPrix(
+                villeDepart,
+                villeArrivee,
+                dateDepart,
+                StatutTrajet.PUBLIE,
+                prixMax,
+                pagination
+        );
+
+// 2. Retour immédiat si aucun résultat
+        if (page.isEmpty()) {
+            return page.map(trajetMapper::toResponse);
         }
 
-        if (villeDepart.trim().equalsIgnoreCase(villeArrivee.trim())) {
-            throw new IllegalArgumentException(
-                    "Les villes de départ et d'arrivée doivent être différentes"
-            );
-        }
-
-        if (dateDepart == null) {
-            throw new IllegalArgumentException(
-                    "La date de départ est obligatoire"
-            );
-        }
-
-        if (prixMax != null && prixMax.signum() < 0) {
-            throw new IllegalArgumentException(
-                    "Le prix maximal ne peut pas être négatif"
-            );
-        }
-        return trajetRepository.rechercherTrajetsAvecPrix(
-                        villeDepart.trim(),
-                        villeArrivee.trim(),
-                        dateDepart,
-                        StatutTrajet.PUBLIE,
-                        prixMax
-                )
+// 3. Extraire les IDs des trajets de la page
+        List<Long> ids = page.getContent()
                 .stream()
-                .map(trajetMapper::toResponse)
+                .map(Trajet::getId)
                 .toList();
+
+
+        Map<Long, Trajet> trajets = trajetRepository
+                .findAllWithDetailsByIdIn(ids)
+                .stream()
+                .collect(Collectors.toMap(
+                        Trajet::getId,
+                        Function.identity()
+                ));
+
+        return page.map(trajet -> {
+            Trajet trajetComplet = trajets.get(trajet.getId());
+
+            if (trajetComplet == null) {
+                throw new IllegalStateException(
+                        "Trajet introuvable lors du chargement : " + trajet.getId()
+                );
+            }
+
+            return trajetMapper.toResponse(trajetComplet);
+        });
     }
 
     //Helper methods

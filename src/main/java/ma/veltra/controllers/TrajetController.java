@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import ma.veltra.dto.request.TrajetCreateRequest;
 import ma.veltra.dto.response.TrajetResponse;
 import ma.veltra.services.TrajetService;
+import org.springframework.data.domain.*;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -63,20 +65,22 @@ public class TrajetController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<TrajetResponse>> rechercherTrajets(
+    public ResponseEntity<Page<TrajetResponse>> rechercherTrajets(
             @RequestParam String villeDepart,
             @RequestParam String villeArrivee,
             @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
             LocalDateTime dateDepart,
-            @RequestParam(required = false) BigDecimal prixMax
+            @RequestParam(required = false) BigDecimal prixMax,
+            @PageableDefault(size = 10) Pageable pageable
     ) {
         return ResponseEntity.ok(
                 trajetService.rechercherTrajets(
                         villeDepart,
                         villeArrivee,
                         dateDepart,
-                        prixMax
+                        prixMax,
+                        pageable
                 )
         );
     }

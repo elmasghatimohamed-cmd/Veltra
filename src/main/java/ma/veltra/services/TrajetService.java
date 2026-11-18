@@ -2,7 +2,9 @@ package ma.veltra.services;
 
 import ma.veltra.dto.request.TrajetCreateRequest;
 import ma.veltra.dto.response.TrajetResponse;
+import org.springframework.data.domain.Page;
 
+import org.springframework.data.domain.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,10 +21,11 @@ public interface TrajetService {
 
     TrajetResponse terminer(Long trajetId);
 
-    List<TrajetResponse> rechercherTrajets(
+    Page<TrajetResponse> rechercherTrajets(
             String villeDepart,
             String villeArrivee,
             LocalDateTime dateDepart,
-            BigDecimal prixMax
+            BigDecimal prixMax,
+            Pageable pageable
     );
 }

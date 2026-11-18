@@ -20,7 +20,17 @@ import java.util.Optional;
 public interface TrajetRepository
         extends JpaRepository<Trajet, Long> {
 
-    List<Trajet> findByConducteurId(Long conducteurId);
+    @Query("""
+    SELECT DISTINCT t
+    FROM Trajet t
+    JOIN FETCH t.conducteur
+    JOIN FETCH t.vehicule
+    LEFT JOIN FETCH t.pointsArret
+    WHERE t.conducteur.id = :conducteurId
+    """)
+    List<Trajet> findByConducteurId(
+            @Param("conducteurId") Long conducteurId
+    );
 
     List<Trajet> findByVehiculeId(Long vehiculeId);
 
@@ -45,34 +55,39 @@ public interface TrajetRepository
       AND montee.ordre < descente.ordre
       AND t.dateDepart >= :dateDepart
       AND t.statut = :statut
-    """)
-    List<Trajet> rechercherTrajets(
-            @Param("villeDepart") String villeDepart,
-            @Param("villeArrivee") String villeArrivee,
-            @Param("dateDepart") LocalDateTime dateDepart,
-            @Param("statut") StatutTrajet statut
-    );
-
-    @Query("""
-    SELECT DISTINCT t
-    FROM Trajet t
-    JOIN t.pointsArret montee
-    JOIN t.pointsArret descente
-    WHERE LOWER(montee.ville) = LOWER(:villeDepart)
-      AND LOWER(descente.ville) = LOWER(:villeArrivee)
-      AND montee.ordre < descente.ordre
-      AND t.dateDepart >= :dateDepart
-      AND t.statut = :statut
       AND (
           :prixMax IS NULL
           OR (descente.prixDepuisDepart - montee.prixDepuisDepart) <= :prixMax
       )
     """)
-    List<Trajet> rechercherTrajetsAvecPrix(
-            @Param("villeDepart") String villeDepart,
-            @Param("villeArrivee") String villeArrivee,
-            @Param("dateDepart") LocalDateTime dateDepart,
-            @Param("statut") StatutTrajet statut,
-            @Param("prixMax") BigDecimal prixMax
+    Page<Trajet> rechercherTrajetsAvecPrix(
+            String villeDepart,
+            String villeArrivee,
+            LocalDateTime dateDepart,
+            StatutTrajet statut,
+            BigDecimal prixMax,
+            Pageable pageable
+    );
+
+    @Query("""
+    SELECT DISTINCT t
+    FROM Trajet t
+    JOIN FETCH t.conducteur
+    JOIN FETCH t.vehicule
+    LEFT JOIN FETCH t.pointsArret
+    WHERE t.id = :id
+    """)
+    Optional<Trajet> findDetailsById(@Param("id") Long id);
+
+    @Query("""
+    SELECT DISTINCT t
+    FROM Trajet t
+    JOIN FETCH t.conducteur
+    JOIN FETCH t.vehicule
+    LEFT JOIN FETCH t.pointsArret
+    WHERE t.id IN :ids
+    """)
+    List<Trajet> findAllWithDetailsByIdIn(
+            @Param("ids") List<Long> ids
     );
 }
