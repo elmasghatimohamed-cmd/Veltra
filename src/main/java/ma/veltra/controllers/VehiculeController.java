@@ -3,6 +3,7 @@ package ma.veltra.controllers;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import ma.veltra.dto.request.VehiculeCreateRequest;
+import ma.veltra.dto.request.VehiculeUpdateRequest;
 import ma.veltra.dto.response.VehiculeResponse;
 import ma.veltra.services.VehiculeService;
 import org.springframework.http.HttpStatus;
@@ -42,4 +43,14 @@ public class VehiculeController {
                 vehiculeService.findByConducteurId(conducteurId)
         );
     }
+
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<VehiculeResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody VehiculeUpdateRequest request
+    ) {
+        return ResponseEntity.ok(vehiculeService.update(id, request));
+    }
+
 }

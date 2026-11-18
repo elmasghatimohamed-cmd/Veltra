@@ -61,15 +61,28 @@ public class Vehicule {
         this.conducteur = conducteur;
     }
 
+
     public void modifierCaracteristiques(
             String marque,
             String modele,
             String couleur,
-            int capacite
+            Integer capacite
     ) {
-        this.marque = marque;
-        this.modele = modele;
-        this.couleur = couleur;
-        this.capacite = capacite;
+        if (marque != null) {
+            this.marque = marque;
+        }
+
+        if (modele != null) {
+            this.modele = modele;
+        }
+
+        if (couleur != null) {
+            this.couleur = couleur;
+        }
+
+        if (capacite != null) {
+            this.capacite = capacite;
+        }
     }
+
 }

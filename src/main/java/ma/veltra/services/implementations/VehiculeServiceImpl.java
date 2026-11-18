@@ -2,6 +2,7 @@ package ma.veltra.services.implementations;
 
 import lombok.RequiredArgsConstructor;
 import ma.veltra.dto.request.VehiculeCreateRequest;
+import ma.veltra.dto.request.VehiculeUpdateRequest;
 import ma.veltra.dto.response.VehiculeResponse;
 import ma.veltra.entities.Conducteur;
 import ma.veltra.entities.Vehicule;
@@ -84,4 +85,27 @@ public class VehiculeServiceImpl implements VehiculeService {
                 .map(vehiculeMapper::toResponse)
                 .toList();
     }
+
+
+    @Override
+    @Transactional
+    public VehiculeResponse update(
+            Long id,
+            VehiculeUpdateRequest request
+    ) {
+        Vehicule vehicule = vehiculeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Véhicule introuvable avec l'identifiant : " + id
+                ));
+
+        vehicule.modifierCaracteristiques(
+                request.marque(),
+                request.modele(),
+                request.couleur(),
+                request.capacite()
+        );
+
+        return vehiculeMapper.toResponse(vehicule);
+    }
+
 }
