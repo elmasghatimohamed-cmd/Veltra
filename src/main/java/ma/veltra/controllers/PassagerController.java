@@ -3,6 +3,7 @@ package ma.veltra.controllers;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import ma.veltra.dto.request.PassagerCreateRequest;
+import ma.veltra.dto.request.PassagerUpdateRequest;
 import ma.veltra.dto.response.PassagerResponse;
 import ma.veltra.services.PassagerService;
 import org.springframework.http.HttpStatus;
@@ -46,4 +47,14 @@ public class PassagerController {
     ) {
         return ResponseEntity.ok(passagerService.search(nom, email));
     }
+
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<PassagerResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody PassagerUpdateRequest request
+    ) {
+        return ResponseEntity.ok(passagerService.update(id, request));
+    }
+
 }

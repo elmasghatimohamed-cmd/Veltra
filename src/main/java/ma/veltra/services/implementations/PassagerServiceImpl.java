@@ -2,6 +2,7 @@ package ma.veltra.services.implementations;
 
 import lombok.RequiredArgsConstructor;
 import ma.veltra.dto.request.PassagerCreateRequest;
+import ma.veltra.dto.request.PassagerUpdateRequest;
 import ma.veltra.dto.response.PassagerResponse;
 import ma.veltra.entities.Passager;
 import ma.veltra.exceptions.ResourceAlreadyExistsException;
@@ -74,5 +75,36 @@ public class PassagerServiceImpl implements PassagerService {
         return passagers.stream()
                 .map(passagerMapper::toResponse)
                 .toList();
+    }
+
+
+    @Override
+    @Transactional
+    public PassagerResponse update(
+            Long id,
+            PassagerUpdateRequest request
+    ) {
+        Passager passager = passagerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Passager introuvable avec l'identifiant : " + id
+                ));
+
+        if (request.email() != null
+                && !request.email().equals(passager.getEmail())
+                && passagerRepository.existsByEmail(request.email())) {
+
+            throw new ResourceAlreadyExistsException(
+                    "Un passager avec cet email existe déjà"
+            );
+        }
+
+        passager.modifierInformations(
+                request.nom(),
+                request.prenom(),
+                request.email(),
+                request.telephone()
+        );
+
+        return passagerMapper.toResponse(passager);
     }
 }
