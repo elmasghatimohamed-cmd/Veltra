@@ -37,4 +37,8 @@ public interface ReservationRepository
             @Param("trajetId") Long trajetId,
             @Param("statut") StatutReservation statut
     );
+
+    List<Reservation> findByPassagerIdOrderByDateReservationDesc(
+            Long passagerId
+    );
 }
