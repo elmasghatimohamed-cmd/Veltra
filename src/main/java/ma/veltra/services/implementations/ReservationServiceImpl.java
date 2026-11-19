@@ -1,5 +1,7 @@
 package ma.veltra.services.implementations;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import ma.veltra.dto.request.ReservationCreateRequest;
 import ma.veltra.dto.response.ReservationResponse;
@@ -27,6 +29,8 @@ public class ReservationServiceImpl implements ReservationService {
     private final PassagerRepository passagerRepository;
     private final PointArretRepository pointArretRepository;
     private final ReservationMapper reservationMapper;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     @Transactional
@@ -165,6 +169,7 @@ public class ReservationServiceImpl implements ReservationService {
                 .toList();
     }
 
+
     @Override
     @Transactional
     public ReservationResponse annulerReservation(Long reservationId) {
@@ -174,11 +179,14 @@ public class ReservationServiceImpl implements ReservationService {
                         "Réservation introuvable"
                 ));
 
-        Trajet trajet = trajetRepository.findWithLockById(
-                reservation.getTrajet().getId()
-        ).orElseThrow(() -> new ResourceNotFoundException(
-                "Trajet introuvable"
-        ));
+        Long trajetId = reservation.getTrajet().getId();
+
+        Trajet trajet = trajetRepository.findWithLockById(trajetId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Trajet introuvable"
+                ));
+
+        entityManager.refresh(reservation);
 
         if (reservation.getStatut() == StatutReservation.ANNULEE) {
             throw new IllegalStateException(
@@ -207,5 +215,6 @@ public class ReservationServiceImpl implements ReservationService {
 
         return reservationMapper.toResponse(reservation);
     }
+
 
 }
