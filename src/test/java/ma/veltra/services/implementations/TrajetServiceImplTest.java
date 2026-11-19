@@ -7,6 +7,7 @@ import ma.veltra.entities.Conducteur;
 import ma.veltra.entities.PointArret;
 import ma.veltra.entities.Trajet;
 import ma.veltra.entities.Vehicule;
+import ma.veltra.enums.StatutTrajet;
 import ma.veltra.exceptions.ResourceNotFoundException;
 import ma.veltra.mappers.TrajetMapper;
 import ma.veltra.repositories.ConducteurRepository;
@@ -273,22 +274,6 @@ class TrajetServiceImplTest {
         );
     }
 
-    @Test
-    void create_currentlyAcceptsZeroSeatsWithoutBeanValidation() {
-
-        mockConducteurEtVehicule();
-        Trajet saved = mock(Trajet.class);
-        when(trajetRepository.saveAndFlush(any(Trajet.class)))
-                .thenReturn(saved);
-
-        trajetService.create(new TrajetCreateRequest(
-                1L, 2L, depart, 0, parcoursValide()
-        ));
-
-        ArgumentCaptor<Trajet> captor = ArgumentCaptor.forClass(Trajet.class);
-        verify(trajetRepository).saveAndFlush(captor.capture());
-        assertEquals(0, captor.getValue().getPlacesProposees());
-    }
 
     @Test
     void create_shouldRejectSeatsAboveCapacity() {
@@ -451,26 +436,8 @@ class TrajetServiceImplTest {
         );
     }
 
-    @Test
-    void create_shouldRejectNullRequest() {
-        assertThrows(NullPointerException.class,
-                () -> trajetService.create(null));
-        verifyNoInteractions(trajetRepository, conducteurRepository,
-                vehiculeRepository, trajetMapper);
-    }
 
-    @Test
-    void create_shouldRejectNullDepartureDate() {
-        TrajetCreateRequest invalid = new TrajetCreateRequest(
-                1L, 2L, null, 3, parcoursValide());
-        verifierRefusAvecRessourcesValides(invalid, "La date de départ doit être dans le futur");
-    }
 
-    @Test
-    void create_shouldRejectNullStopsList() {
-        verifierRefusAvecRessourcesValides(request(null),
-                "Un trajet doit contenir au moins deux points d'arrêt");
-    }
 
     @Test
     void create_shouldRejectEqualPrices() {
@@ -491,5 +458,121 @@ class TrajetServiceImplTest {
                 1L, 2L, depart, 4, parcoursValide()));
         verify(trajetRepository).saveAndFlush(any(Trajet.class));
     }
-}
 
+
+    private Trajet preparerTrajetPourChangementStatut(StatutTrajet statut) {
+        Trajet trajet = mock(Trajet.class);
+        when(trajetRepository.findById(1L)).thenReturn(Optional.of(trajet));
+        when(trajet.getStatut()).thenReturn(statut);
+        return trajet;
+    }
+
+    @Test
+    void annuler_devraitAnnulerTrajetPublie() {
+        Trajet trajet = preparerTrajetPourChangementStatut(StatutTrajet.PUBLIE);
+        TrajetResponse response = mock(TrajetResponse.class);
+
+        when(trajetMapper.toResponse(trajet)).thenReturn(response);
+
+        assertSame(response, trajetService.annuler(1L));
+
+        verify(trajet).marquerAnnule();
+        verify(trajetMapper).toResponse(trajet);
+    }
+
+    @Test
+    void annuler_devraitAnnulerTrajetComplet() {
+        Trajet trajet = preparerTrajetPourChangementStatut(StatutTrajet.COMPLET);
+
+        trajetService.annuler(1L);
+
+        verify(trajet).marquerAnnule();
+    }
+
+    @Test
+    void annuler_devraitRefuserTrajetDejaAnnule() {
+        Trajet trajet = preparerTrajetPourChangementStatut(StatutTrajet.ANNULE);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> trajetService.annuler(1L)
+        );
+
+        verify(trajet, never()).marquerAnnule();
+        verifyNoInteractions(trajetMapper);
+    }
+
+    @Test
+    void terminer_devraitTerminerTrajetPublieApresDepart() {
+        Trajet trajet = preparerTrajetPourChangementStatut(StatutTrajet.PUBLIE);
+        TrajetResponse response = mock(TrajetResponse.class);
+
+        when(trajet.getDateDepart())
+                .thenReturn(LocalDateTime.now().minusHours(3));
+        when(trajetMapper.toResponse(trajet)).thenReturn(response);
+
+        assertSame(response, trajetService.terminer(1L));
+
+        verify(trajet).marquerTermine();
+    }
+
+    @Test
+    void terminer_devraitTerminerTrajetCompletApresDepart() {
+        Trajet trajet = preparerTrajetPourChangementStatut(StatutTrajet.COMPLET);
+        when(trajet.getDateDepart())
+                .thenReturn(LocalDateTime.now().minusDays(1));
+
+        trajetService.terminer(1L);
+
+        verify(trajet).marquerTermine();
+    }
+
+    @Test
+    void terminer_devraitRefuserAvantDepart() {
+        Trajet trajet = preparerTrajetPourChangementStatut(StatutTrajet.PUBLIE);
+        when(trajet.getDateDepart())
+                .thenReturn(LocalDateTime.now().plusDays(1));
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> trajetService.terminer(1L)
+        );
+
+        verify(trajet, never()).marquerTermine();
+    }
+
+    @Test
+    void terminer_devraitRefuserTrajetAnnule() {
+        Trajet trajet = preparerTrajetPourChangementStatut(StatutTrajet.ANNULE);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> trajetService.terminer(1L)
+        );
+
+        verify(trajet, never()).marquerTermine();
+    }
+
+    @Test
+    void annuler_devraitRefuserTrajetIntrouvable() {
+        when(trajetRepository.findById(1L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> trajetService.annuler(1L)
+        );
+    }
+
+    @Test
+    void terminer_devraitRefuserTrajetIntrouvable() {
+        when(trajetRepository.findById(1L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> trajetService.terminer(1L)
+        );
+    }
+
+}

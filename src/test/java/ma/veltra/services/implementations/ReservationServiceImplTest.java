@@ -1,10 +1,12 @@
 package ma.veltra.services.implementations;
 
+import jakarta.persistence.EntityManager;
 import ma.veltra.dto.request.ReservationCreateRequest;
 import ma.veltra.dto.response.ReservationResponse;
 import ma.veltra.entities.*;
 import ma.veltra.enums.StatutReservation;
 import ma.veltra.enums.StatutTrajet;
+import ma.veltra.exceptions.ResourceNotFoundException;
 import ma.veltra.mappers.ReservationMapper;
 import ma.veltra.repositories.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -40,6 +43,9 @@ class ReservationServiceImplTest {
     @Mock
     private ReservationMapper reservationMapper;
 
+    @Mock
+    private EntityManager entityManager;
+
     @InjectMocks
     private ReservationServiceImpl reservationService;
 
@@ -58,6 +64,11 @@ class ReservationServiceImplTest {
 
         request = new ReservationCreateRequest(
                 1L, 2L, 4L, 5L, 2
+        );
+        ReflectionTestUtils.setField(
+                reservationService,
+                "entityManager",
+                entityManager
         );
     }
 
@@ -98,10 +109,6 @@ class ReservationServiceImplTest {
         preparerTrajetValide();
         preparerSegmentValide();
 
-        when(reservationRepository
-                .existsByPassagerIdAndTrajetIdAndStatut(
-                        1L, 2L, StatutReservation.CONFIRMEE
-                )).thenReturn(false);
 
         when(reservationRepository
                 .sumReservedSeatsByTrajetAndStatut(
@@ -211,4 +218,127 @@ class ReservationServiceImplTest {
         verify(trajet).marquerComplet();
         verify(reservationRepository).save(any(Reservation.class));
     }
+
+
+    private Reservation preparerAnnulation(
+            StatutTrajet statutTrajet,
+            StatutReservation statutReservation,
+            LocalDateTime dateDepart
+    ) {
+        Reservation reservation = mock(Reservation.class);
+
+        when(reservationRepository.findById(10L))
+                .thenReturn(Optional.of(reservation));
+
+        when(reservation.getTrajet()).thenReturn(trajet);
+        when(trajet.getId()).thenReturn(2L);
+
+        when(trajetRepository.findWithLockById(2L))
+                .thenReturn(Optional.of(trajet));
+
+        when(reservation.getStatut()).thenReturn(statutReservation);
+
+        if (statutReservation != StatutReservation.ANNULEE) {
+            when(trajet.getDateDepart()).thenReturn(dateDepart);
+
+            if (dateDepart.isAfter(LocalDateTime.now())) {
+                when(trajet.getStatut()).thenReturn(statutTrajet);
+            }
+        }
+
+        return reservation;
+    }
+
+    @Test
+    void annulerReservation_devraitAnnulerReservationConfirmee() {
+        Reservation reservation = preparerAnnulation(
+                StatutTrajet.PUBLIE,
+                StatutReservation.CONFIRMEE,
+                LocalDateTime.now().plusDays(2)
+        );
+
+        ReservationResponse response = mock(ReservationResponse.class);
+        when(reservationMapper.toResponse(reservation)).thenReturn(response);
+
+        assertThat(reservationService.annulerReservation(10L))
+                .isSameAs(response);
+
+        verify(entityManager).refresh(reservation);
+        verify(trajetRepository).findWithLockById(2L);
+        verify(reservation).marquerAnnulee();
+        verify(trajet, never()).marquerPublie();
+    }
+
+    @Test
+    void annulerReservation_devraitReouvrirTrajetComplet() {
+        Reservation reservation = preparerAnnulation(
+                StatutTrajet.COMPLET,
+                StatutReservation.CONFIRMEE,
+                LocalDateTime.now().plusDays(2)
+        );
+
+        reservationService.annulerReservation(10L);
+
+        verify(reservation).marquerAnnulee();
+        verify(trajet).marquerPublie();
+    }
+
+    @Test
+    void annulerReservation_devraitRefuserReservationDejaAnnulee() {
+        Reservation reservation = preparerAnnulation(
+                StatutTrajet.PUBLIE,
+                StatutReservation.ANNULEE,
+                LocalDateTime.now().plusDays(2)
+        );
+
+        assertThatThrownBy(() -> reservationService.annulerReservation(10L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("déjà annulée");
+
+        verify(reservation, never()).marquerAnnulee();
+        verify(entityManager).refresh(reservation);
+    }
+
+    @Test
+    void annulerReservation_devraitRefuserApresDepart() {
+        Reservation reservation = preparerAnnulation(
+                StatutTrajet.PUBLIE,
+                StatutReservation.CONFIRMEE,
+                LocalDateTime.now().minusDays(1)
+        );
+
+        assertThatThrownBy(() -> reservationService.annulerReservation(10L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("après le départ");
+
+        verify(reservation, never()).marquerAnnulee();
+    }
+
+    @Test
+    void annulerReservation_devraitRefuserTrajetNonAnnulable() {
+        Reservation reservation = preparerAnnulation(
+                StatutTrajet.ANNULE,
+                StatutReservation.CONFIRMEE,
+                LocalDateTime.now().plusDays(2)
+        );
+
+        assertThatThrownBy(() -> reservationService.annulerReservation(10L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("ne permet plus l'annulation");
+
+        verify(reservation, never()).marquerAnnulee();
+    }
+
+    @Test
+    void annulerReservation_devraitRefuserReservationIntrouvable() {
+        when(reservationRepository.findById(10L))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reservationService.annulerReservation(10L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Réservation introuvable");
+
+        verifyNoInteractions(trajetRepository, entityManager);
+    }
+
 }
