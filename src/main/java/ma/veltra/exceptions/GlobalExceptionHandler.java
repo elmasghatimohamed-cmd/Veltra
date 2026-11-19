@@ -2,91 +2,120 @@ package ma.veltra.exceptions;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.http.ResponseEntity;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.net.URI;
+import java.time.OffsetDateTime;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private ProblemDetail buildProblem(
+            HttpStatus status,
+            String title,
+            String code,
+            String message,
+            HttpServletRequest request
+    ) {
+        ProblemDetail problem =
+                ProblemDetail.forStatusAndDetail(status, message);
+
+        problem.setTitle(title);
+        problem.setType(URI.create("about:blank"));
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        problem.setProperty("code", code);
+        problem.setProperty("message", message);
+        problem.setProperty("chemin", request.getRequestURI());
+
+        return problem;
+    }
+
     @ExceptionHandler(ResourceAlreadyExistsException.class)
     public ProblemDetail handleConflict(
-            ResourceAlreadyExistsException exception
+            ResourceAlreadyExistsException exception,
+            HttpServletRequest request
     ) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+        return buildProblem(
                 HttpStatus.CONFLICT,
-                exception.getMessage()
+                "Resource already exists",
+                "RESOURCE_ALREADY_EXISTS",
+                exception.getMessage(),
+                request
         );
+    }
 
-        problem.setTitle("Resource already exists");
-        return problem;
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ProblemDetail handleNotFound(
+            ResourceNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildProblem(
+                HttpStatus.NOT_FOUND,
+                "Resource not found",
+                "RESOURCE_NOT_FOUND",
+                exception.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ProblemDetail handleBadRequest(
+            IllegalArgumentException exception,
+            HttpServletRequest request
+    ) {
+        return buildProblem(
+                HttpStatus.BAD_REQUEST,
+                "Invalid request",
+                "INVALID_ARGUMENT",
+                exception.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ProblemDetail handleIllegalState(
+            IllegalStateException exception,
+            HttpServletRequest request
+    ) {
+        return buildProblem(
+                HttpStatus.CONFLICT,
+                "Business rule violation",
+                "INVALID_STATE",
+                exception.getMessage(),
+                request
+        );
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidation(
-            MethodArgumentNotValidException exception
+            MethodArgumentNotValidException exception,
+            HttpServletRequest request
     ) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+        ProblemDetail problem = buildProblem(
                 HttpStatus.BAD_REQUEST,
-                "Les données fournies sont invalides"
+                "Validation failed",
+                "VALIDATION_ERROR",
+                "Les données fournies sont invalides",
+                request
         );
-
-        problem.setTitle("Validation failed");
 
         problem.setProperty(
                 "errors",
                 exception.getBindingResult()
                         .getFieldErrors()
                         .stream()
-                        .map(error -> error.getField() + ": " +
-                                error.getDefaultMessage())
+                        .map(error ->
+                                error.getField() + ": "
+                                        + error.getDefaultMessage()
+                        )
                         .toList()
         );
 
         return problem;
     }
-
-
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ProblemDetail handleNotFound(
-            ResourceNotFoundException exception
-    ) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.NOT_FOUND,
-                exception.getMessage()
-        );
-
-        problem.setTitle("Resource not found");
-
-        return problem;
-    }
-
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ProblemDetail handleBadRequest(
-            IllegalArgumentException exception
-    ) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.BAD_REQUEST,
-                exception.getMessage()
-        );
-
-        problem.setTitle("Invalid request");
-        return problem;
-    }
-
-
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ProblemDetail> handleIllegalState(
-            IllegalStateException exception
-    ) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.CONFLICT,
-                exception.getMessage()
-        );
-
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
-    }
-
 }

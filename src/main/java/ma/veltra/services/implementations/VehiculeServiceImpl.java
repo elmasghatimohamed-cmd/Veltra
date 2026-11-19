@@ -1,6 +1,7 @@
 package ma.veltra.services.implementations;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import ma.veltra.dto.request.VehiculeCreateRequest;
 import ma.veltra.dto.request.VehiculeUpdateRequest;
 import ma.veltra.dto.response.VehiculeResponse;
@@ -20,6 +21,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class VehiculeServiceImpl implements VehiculeService {
 
     private final VehiculeRepository vehiculeRepository;
@@ -57,6 +59,7 @@ public class VehiculeServiceImpl implements VehiculeService {
 
         Vehicule savedVehicule = vehiculeRepository.save(vehicule);
 
+        log.info("Véhicule créé : id={}, conducteurId={}", savedVehicule.getId(), request.conducteurId());
         return vehiculeMapper.toResponse(savedVehicule);
     }
 
@@ -100,6 +103,7 @@ public class VehiculeServiceImpl implements VehiculeService {
                         "Véhicule introuvable avec l'identifiant : " + id
                 ));
 
+        log.info("Mise à jour véhicule demandée : id={}", id);
         vehicule.modifierCaracteristiques(
                 request.marque(),
                 request.modele(),
@@ -121,12 +125,14 @@ public class VehiculeServiceImpl implements VehiculeService {
                 ));
 
         if (trajetRepository.existsByVehiculeId(id)) {
+            log.warn("Suppression véhicule refusée : id={} associé à un trajet", id);
             throw new IllegalStateException(
                     "Impossible de supprimer ce vehicule: il est associe a un ou plusieurs trajets"
             );
         }
 
         vehiculeRepository.delete(vehicule);
+        log.info("Véhicule supprimé : id={}", id);
         vehiculeRepository.flush();
     }
 
