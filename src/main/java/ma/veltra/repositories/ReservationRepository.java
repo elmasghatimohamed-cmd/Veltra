@@ -21,6 +21,12 @@ public interface ReservationRepository
             StatutReservation statut
     );
 
+    boolean existsByPassagerIdAndTrajetIdAndStatut(
+            Long passagerId,
+            Long trajetId,
+            StatutReservation statut
+    );
+
     @Query("""
         SELECT COALESCE(SUM(r.nombrePlaces), 0)
         FROM Reservation r

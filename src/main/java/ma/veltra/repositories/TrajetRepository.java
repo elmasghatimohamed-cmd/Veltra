@@ -43,7 +43,8 @@ public interface TrajetRepository
     );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<Trajet> findWithLockById(Long id);
+    @Query("SELECT t FROM Trajet t WHERE t.id = :id")
+    Optional<Trajet> findWithLockById(@Param("id") Long id);
 
     @Query("""
     SELECT DISTINCT t
