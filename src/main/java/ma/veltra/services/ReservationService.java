@@ -11,4 +11,6 @@ public interface ReservationService {
     ReservationResponse creerReservation(ReservationCreateRequest request);
 
     List<ReservationResponse> historiquePassager(Long passagerId);
+
+    ReservationResponse annulerReservation(Long reservationId);
 }

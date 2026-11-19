@@ -164,4 +164,48 @@ public class ReservationServiceImpl implements ReservationService {
                 .map(reservationMapper::toResponse)
                 .toList();
     }
+
+    @Override
+    @Transactional
+    public ReservationResponse annulerReservation(Long reservationId) {
+
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Réservation introuvable"
+                ));
+
+        Trajet trajet = trajetRepository.findWithLockById(
+                reservation.getTrajet().getId()
+        ).orElseThrow(() -> new ResourceNotFoundException(
+                "Trajet introuvable"
+        ));
+
+        if (reservation.getStatut() == StatutReservation.ANNULEE) {
+            throw new IllegalStateException(
+                    "Cette réservation est déjà annulée"
+            );
+        }
+
+        if (!trajet.getDateDepart().isAfter(LocalDateTime.now())) {
+            throw new IllegalStateException(
+                    "Impossible d'annuler une réservation après le départ"
+            );
+        }
+
+        if (trajet.getStatut() != StatutTrajet.PUBLIE
+                && trajet.getStatut() != StatutTrajet.COMPLET) {
+            throw new IllegalStateException(
+                    "Le trajet ne permet plus l'annulation"
+            );
+        }
+
+        reservation.marquerAnnulee();
+
+        if (trajet.getStatut() == StatutTrajet.COMPLET) {
+            trajet.marquerPublie();
+        }
+
+        return reservationMapper.toResponse(reservation);
+    }
+
 }

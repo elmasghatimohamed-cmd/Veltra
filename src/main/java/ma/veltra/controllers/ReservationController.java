@@ -39,4 +39,15 @@ public class ReservationController {
                 reservationService.historiquePassager(passagerId)
         );
     }
+
+
+    @PatchMapping("/{reservationId}/annulation")
+    public ResponseEntity<ReservationResponse> annulerReservation(
+            @PathVariable Long reservationId
+    ) {
+        return ResponseEntity.ok(
+                reservationService.annulerReservation(reservationId)
+        );
+    }
+
 }
