@@ -1,6 +1,7 @@
 package ma.veltra.repositories;
 
 import ma.veltra.entities.Trajet;
+import ma.veltra.enums.StatutReservation;
 import ma.veltra.enums.StatutTrajet;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -60,6 +61,17 @@ public interface TrajetRepository
           :prixMax IS NULL
           OR (descente.prixDepuisDepart - montee.prixDepuisDepart) <= :prixMax
       )
+      AND (
+          :nombrePlaces IS NULL
+          OR (
+              t.placesProposees - (
+                  SELECT COALESCE(SUM(r.nombrePlaces), 0)
+                  FROM Reservation r
+                  WHERE r.trajet = t
+                    AND r.statut = :statutReservation
+              )
+          ) >= :nombrePlaces
+          )
     """)
     Page<Trajet> rechercherTrajetsAvecPrix(
             String villeDepart,
@@ -67,6 +79,8 @@ public interface TrajetRepository
             LocalDateTime dateDepart,
             StatutTrajet statut,
             BigDecimal prixMax,
+            @Param("nombrePlaces") Integer nombrePlaces,
+            @Param("statutReservation") StatutReservation statutReservation,
             Pageable pageable
     );
 
