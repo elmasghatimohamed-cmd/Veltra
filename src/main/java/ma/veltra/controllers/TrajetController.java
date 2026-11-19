@@ -1,9 +1,12 @@
 package ma.veltra.controllers;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import ma.veltra.dto.request.TrajetCreateRequest;
+import ma.veltra.dto.response.DisponibiliteResponse;
 import ma.veltra.dto.response.TrajetResponse;
+import ma.veltra.services.DisponibiliteService;
 import ma.veltra.services.TrajetService;
 import org.springframework.data.domain.*;
 import org.springframework.data.web.PageableDefault;
@@ -22,6 +25,7 @@ import java.util.List;
 public class TrajetController {
 
     private final TrajetService trajetService;
+    private final DisponibiliteService disponibiliteService;
 
     @PostMapping
     public ResponseEntity<TrajetResponse> create(
@@ -72,6 +76,9 @@ public class TrajetController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
             LocalDateTime dateDepart,
             @RequestParam(required = false) BigDecimal prixMax,
+            @RequestParam(required = false)
+            @Min(1)
+            Integer nombrePlaces,
             @PageableDefault(size = 10) Pageable pageable
     ) {
         return ResponseEntity.ok(
@@ -80,8 +87,19 @@ public class TrajetController {
                         villeArrivee,
                         dateDepart,
                         prixMax,
-                        pageable
-                )
+                        nombrePlaces,
+                        pageable)
         );
     }
+
+
+    @GetMapping("/{trajetId}/disponibilite")
+    public ResponseEntity<DisponibiliteResponse> consulterDisponibilite(
+            @PathVariable Long trajetId
+    ) {
+        long placesRestantes = disponibiliteService.calculerPlacesRestantes(trajetId);
+
+        return ResponseEntity.ok(new DisponibiliteResponse(trajetId, placesRestantes));
+    }
+
 }

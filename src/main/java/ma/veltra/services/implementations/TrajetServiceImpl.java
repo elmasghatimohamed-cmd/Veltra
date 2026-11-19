@@ -9,6 +9,7 @@ import ma.veltra.entities.Conducteur;
 import ma.veltra.entities.PointArret;
 import ma.veltra.entities.Trajet;
 import ma.veltra.entities.Vehicule;
+import ma.veltra.enums.StatutReservation;
 import ma.veltra.enums.StatutTrajet;
 import ma.veltra.exceptions.ResourceNotFoundException;
 import ma.veltra.mappers.TrajetMapper;
@@ -193,6 +194,7 @@ public class TrajetServiceImpl implements TrajetService {
         return trajetMapper.toResponse(trajet);
     }
 
+
     @Override
     @Transactional(readOnly = true)
     public Page<TrajetResponse> rechercherTrajets(
@@ -200,35 +202,40 @@ public class TrajetServiceImpl implements TrajetService {
             String villeArrivee,
             LocalDateTime dateDepart,
             BigDecimal prixMax,
+            Integer nombrePlaces,
             Pageable pageable
     ) {
+        if (nombrePlaces != null && nombrePlaces < 1) {
+            throw new IllegalArgumentException(
+                    "Le nombre de places demandé doit être positif"
+            );
+        }
+
         Pageable pagination = PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
                 Sort.by(Sort.Direction.ASC, "dateDepart")
         );
 
-        // 1. Recherche paginée
         Page<Trajet> page = trajetRepository.rechercherTrajetsAvecPrix(
                 villeDepart,
                 villeArrivee,
                 dateDepart,
                 StatutTrajet.PUBLIE,
                 prixMax,
+                nombrePlaces,
+                StatutReservation.CONFIRMEE,
                 pagination
         );
 
-// 2. Retour immédiat si aucun résultat
         if (page.isEmpty()) {
             return page.map(trajetMapper::toResponse);
         }
 
-// 3. Extraire les IDs des trajets de la page
         List<Long> ids = page.getContent()
                 .stream()
                 .map(Trajet::getId)
                 .toList();
-
 
         Map<Long, Trajet> trajets = trajetRepository
                 .findAllWithDetailsByIdIn(ids)
@@ -243,7 +250,8 @@ public class TrajetServiceImpl implements TrajetService {
 
             if (trajetComplet == null) {
                 throw new IllegalStateException(
-                        "Trajet introuvable lors du chargement : " + trajet.getId()
+                        "Trajet introuvable lors du chargement : "
+                                + trajet.getId()
                 );
             }
 

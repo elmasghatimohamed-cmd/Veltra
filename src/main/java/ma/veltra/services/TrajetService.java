@@ -26,6 +26,7 @@ public interface TrajetService {
             String villeArrivee,
             LocalDateTime dateDepart,
             BigDecimal prixMax,
+            Integer nombrePlaces,
             Pageable pageable
     );
 }
