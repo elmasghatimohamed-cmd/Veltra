@@ -3,6 +3,7 @@ package ma.veltra.services.implementations;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import ma.veltra.dto.request.ReservationCreateRequest;
 import ma.veltra.dto.response.ReservationResponse;
 import ma.veltra.entities.*;
@@ -22,6 +23,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ReservationServiceImpl implements ReservationService {
 
     private final ReservationRepository reservationRepository;
@@ -44,6 +46,7 @@ public class ReservationServiceImpl implements ReservationService {
                 );
 
         if (trajet.getStatut() != StatutTrajet.PUBLIE) {
+            log.warn("Réservation refusée : trajetId={}, statut={}", trajet.getId(), trajet.getStatut());
             throw new IllegalStateException(
                     "Ce trajet n'accepte pas de réservations"
             );
@@ -75,6 +78,7 @@ public class ReservationServiceImpl implements ReservationService {
                 );
 
         if (dejaReserve) {
+            log.warn("Réservation refusée : doublon pour trajetId={} et passagerId={}", trajet.getId(), passager.getId());
             throw new IllegalStateException(
                     "Le passager possède déjà une réservation confirmée"
             );
@@ -115,6 +119,7 @@ public class ReservationServiceImpl implements ReservationService {
                 (long) trajet.getPlacesProposees() - placesReservees;
 
         if (request.nombrePlaces() > placesRestantes) {
+            log.warn("Réservation refusée : trajetId={}, places demandées={}, restantes={}", trajet.getId(), request.nombrePlaces(), placesRestantes);
             throw new IllegalStateException(
                     "Nombre de places disponibles insuffisant"
             );
@@ -149,6 +154,7 @@ public class ReservationServiceImpl implements ReservationService {
             trajet.marquerComplet();
         }
 
+        log.info("Réservation créée : id={}, trajetId={}, places={}", saved.getId(), trajet.getId(), request.nombrePlaces());
         return reservationMapper.toResponse(saved);
     }
 
@@ -189,6 +195,7 @@ public class ReservationServiceImpl implements ReservationService {
         entityManager.refresh(reservation);
 
         if (reservation.getStatut() == StatutReservation.ANNULEE) {
+            log.warn("Annulation refusée : réservation déjà annulée, id={}", reservationId);
             throw new IllegalStateException(
                     "Cette réservation est déjà annulée"
             );
@@ -213,6 +220,7 @@ public class ReservationServiceImpl implements ReservationService {
             trajet.marquerPublie();
         }
 
+        log.info("Réservation annulée : id={}, trajetId={}", reservationId, trajetId);
         return reservationMapper.toResponse(reservation);
     }
 

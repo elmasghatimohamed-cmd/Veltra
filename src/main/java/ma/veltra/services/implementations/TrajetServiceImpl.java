@@ -2,6 +2,7 @@ package ma.veltra.services.implementations;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import ma.veltra.dto.request.PointArretCreateRequest;
 import ma.veltra.dto.request.TrajetCreateRequest;
 import ma.veltra.dto.response.TrajetResponse;
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TrajetServiceImpl implements TrajetService {
 
     private final TrajetRepository trajetRepository;
@@ -112,6 +114,7 @@ public class TrajetServiceImpl implements TrajetService {
 
         Trajet saved = trajetRepository.saveAndFlush(trajet);
 
+        log.info("Trajet créé : id={}, conducteurId={}, places={}", saved.getId(), conducteur.getId(), request.placesProposees());
         return trajetMapper.toResponse(saved);
     }
 
@@ -161,6 +164,7 @@ public class TrajetServiceImpl implements TrajetService {
             );
         }
 
+        log.info("Annulation trajet demandée : id={}", trajetId);
         trajet.marquerAnnule();
 
         return trajetMapper.toResponse(trajet);
@@ -189,6 +193,7 @@ public class TrajetServiceImpl implements TrajetService {
             );
         }
 
+        log.info("Clôture trajet demandée : id={}", trajetId);
         trajet.marquerTermine();
 
         return trajetMapper.toResponse(trajet);
@@ -206,6 +211,7 @@ public class TrajetServiceImpl implements TrajetService {
             Pageable pageable
     ) {
         if (nombrePlaces != null && nombrePlaces < 1) {
+            log.warn("Recherche trajets refusée : nombre de places invalide={}", nombrePlaces);
             throw new IllegalArgumentException(
                     "Le nombre de places demandé doit être positif"
             );

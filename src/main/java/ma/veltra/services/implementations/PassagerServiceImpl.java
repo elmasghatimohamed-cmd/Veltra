@@ -1,6 +1,7 @@
 package ma.veltra.services.implementations;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import ma.veltra.dto.request.PassagerCreateRequest;
 import ma.veltra.dto.request.PassagerUpdateRequest;
 import ma.veltra.dto.response.PassagerResponse;
@@ -17,6 +18,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PassagerServiceImpl implements PassagerService {
 
     private final PassagerRepository passagerRepository;
@@ -27,11 +29,13 @@ public class PassagerServiceImpl implements PassagerService {
     public PassagerResponse create(PassagerCreateRequest request) {
 
         if (passagerRepository.existsByEmail(request.email())){
+            log.warn("Création passager refusée : email déjà utilisé");
             throw new ResourceAlreadyExistsException("Email already exists");
         }
 
         Passager passager = passagerMapper.toEntity(request);
         Passager savedPassager = passagerRepository.save(passager);
+        log.info("Passager créé : id={}", savedPassager.getId());
         return passagerMapper.toResponse(savedPassager);
     }
 
@@ -98,6 +102,7 @@ public class PassagerServiceImpl implements PassagerService {
             );
         }
 
+        log.info("Mise à jour passager demandée : id={}", id);
         passager.modifierInformations(
                 request.nom(),
                 request.prenom(),

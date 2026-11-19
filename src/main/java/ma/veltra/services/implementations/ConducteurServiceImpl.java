@@ -3,6 +3,7 @@ package ma.veltra.services.implementations;
 import ma.veltra.dto.request.ConducteurUpdateRequest;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import ma.veltra.dto.request.ConducteurCreateRequest;
 import ma.veltra.dto.response.ConducteurResponse;
 import ma.veltra.entities.Conducteur;
@@ -17,6 +18,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ConducteurServiceImpl implements ConducteurService {
 
     private final ConducteurRepository conducteurRepository;
@@ -27,19 +29,23 @@ public class ConducteurServiceImpl implements ConducteurService {
     public ConducteurResponse create(ConducteurCreateRequest request) {
 
         if (conducteurRepository.existsByEmail(request.email())) {
+            log.warn("Création conducteur refusée : email déjà utilisé");
             throw new ResourceAlreadyExistsException(
                     "Un conducteur avec cet email existe déjà"
             );
         }
 
         if (conducteurRepository.existsByNumeroPermis(request.numeroPermis())) {
+            log.warn("Création conducteur refusée : permis déjà utilisé");
             throw new ResourceAlreadyExistsException(
                     "Un conducteur avec ce numéro de permis existe déjà"
             );
         }
 
         Conducteur conducteur = conducteurMapper.toEntity(request);
+        log.info("Création conducteur demandée");
         Conducteur savedConducteur = conducteurRepository.save(conducteur);
+        log.info("Conducteur créé : id={}", savedConducteur.getId());
         return conducteurMapper.toResponse(savedConducteur);
     }
 
@@ -72,7 +78,7 @@ public class ConducteurServiceImpl implements ConducteurService {
 
         if (hasNom == hasEmail) {
             throw new IllegalArgumentException(
-                  "Veuillez fournir uniquement un critère de recherche: nom ou email"
+                    "Veuillez fournir uniquement un critère de recherche: nom ou email"
             );
         }
 
@@ -114,6 +120,7 @@ public class ConducteurServiceImpl implements ConducteurService {
             );
         }
 
+        log.info("Mise à jour conducteur demandée : id={}", id);
         conducteur.modifierInformations(
                 request.nom(),
                 request.prenom(),
