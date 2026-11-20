@@ -3,9 +3,15 @@ package ma.veltra.exceptions;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 
 import java.net.URI;
 import java.time.OffsetDateTime;
@@ -129,6 +135,73 @@ public class GlobalExceptionHandler {
                 "Forbidden operation",
                 "FORBIDDEN_OPERATION",
                 exception.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ProblemDetail handleMissingParameter(
+            MissingServletRequestParameterException ex,
+            HttpServletRequest request
+    ) {
+        return buildProblem(
+                HttpStatus.BAD_REQUEST,
+                "Missing request parameter",
+                "MISSING_PARAMETER",
+                "Paramètre obligatoire manquant : " + ex.getParameterName(),
+                request
+        );
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ProblemDetail handleMethodValidation(
+            HandlerMethodValidationException ex,
+            HttpServletRequest request
+    ) {
+        return buildProblem(
+                HttpStatus.BAD_REQUEST,
+                "Validation failed",
+                "VALIDATION_ERROR",
+                "Un ou plusieurs paramètres de requête sont invalides",
+                request
+        );
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ProblemDetail> handleMethodNotAllowed(
+            HttpRequestMethodNotSupportedException ex,
+            HttpServletRequest request
+    ) {
+        ProblemDetail problem = buildProblem(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                "Method not allowed",
+                "METHOD_NOT_ALLOWED",
+                "Cette méthode HTTP n'est pas autorisée pour cette ressource",
+                request
+        );
+
+        ResponseEntity.BodyBuilder response =
+                ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
+
+        String[] supported = ex.getSupportedMethods();
+
+        if (supported != null) {
+            response.header(HttpHeaders.ALLOW, String.join(", ", supported));
+        }
+
+        return response.body(problem);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail handleUnreadableMessage(
+            HttpMessageNotReadableException exception,
+            HttpServletRequest request
+    ) {
+        return buildProblem(
+                HttpStatus.BAD_REQUEST,
+                "Invalid request body",
+                "INVALID_REQUEST_BODY",
+                "Le corps JSON de la requête est absent ou mal formé.",
                 request
         );
     }
