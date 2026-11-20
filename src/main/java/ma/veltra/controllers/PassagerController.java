@@ -42,10 +42,9 @@ public class PassagerController {
 
     @GetMapping("/search")
     public ResponseEntity<List<PassagerResponse>> search(
-            @RequestParam(required = false) String nom,
-            @RequestParam(required = false) String email
+            @RequestParam String email
     ) {
-        return ResponseEntity.ok(passagerService.search(nom, email));
+        return ResponseEntity.ok(passagerService.search(email));
     }
 
 

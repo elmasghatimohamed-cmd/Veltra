@@ -3,7 +3,7 @@ package ma.veltra.dto.request;
 import jakarta.validation.constraints.*;
 
 public record VehiculeCreateRequest(
-        @NotNull Long conducteurId,
+        @NotNull @Positive Long conducteurId,
         @NotBlank String marque,
         @NotBlank String modele,
         @NotBlank String immatriculation,

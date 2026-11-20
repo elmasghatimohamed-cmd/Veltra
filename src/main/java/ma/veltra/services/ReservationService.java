@@ -2,7 +2,6 @@ package ma.veltra.services;
 
 import ma.veltra.dto.request.ReservationCreateRequest;
 import ma.veltra.dto.response.ReservationResponse;
-import ma.veltra.entities.Reservation;
 
 import java.util.List;
 
@@ -13,4 +12,6 @@ public interface ReservationService {
     List<ReservationResponse> historiquePassager(Long passagerId);
 
     ReservationResponse annulerReservation(Long reservationId);
+
+    List<ReservationResponse> reservationsDuTrajet(Long trajetId);
 }

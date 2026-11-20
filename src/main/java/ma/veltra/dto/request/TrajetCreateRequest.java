@@ -7,8 +7,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record TrajetCreateRequest(
-        @NotNull Long conducteurId,
-        @NotNull Long vehiculeId,
+        @NotNull @Positive Long conducteurId,
+        @NotNull @Positive Long vehiculeId,
         @NotNull @Future LocalDateTime dateDepart,
         @Min(1) int placesProposees,
         @NotNull @Size(min = 2)

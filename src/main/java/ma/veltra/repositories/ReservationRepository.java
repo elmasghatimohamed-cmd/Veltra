@@ -12,30 +12,39 @@ import java.util.Optional;
 
 public interface ReservationRepository
         extends JpaRepository<Reservation, Long> {
-
-    List<Reservation> findByPassagerId(Long passagerId);
-
-    List<Reservation> findByTrajetId(Long trajetId);
-
-    List<Reservation> findByPassagerIdAndStatut(
-            Long passagerId,
-            StatutReservation statut
-    );
-
     boolean existsByPassagerIdAndTrajetIdAndStatut(
             Long passagerId,
             Long trajetId,
             StatutReservation statut
     );
 
+    interface PlacesReserveesParTrajet {
+        Long getTrajetId();
+        Long getPlacesReservees();
+    }
+
     @Query("""
-        SELECT COALESCE(SUM(r.nombrePlaces), 0)
-        FROM Reservation r
-        WHERE r.trajet.id = :trajetId
-          AND r.statut = :statut
-        """)
+    SELECT COALESCE(SUM(r.nombrePlaces), 0)
+    FROM Reservation r
+    WHERE r.trajet.id = :trajetId
+      AND r.statut = :statut
+    """)
     Long sumReservedSeatsByTrajetAndStatut(
             @Param("trajetId") Long trajetId,
+            @Param("statut") StatutReservation statut
+    );
+
+    @Query("""
+    SELECT
+        r.trajet.id AS trajetId,
+        SUM(r.nombrePlaces) AS placesReservees
+    FROM Reservation r
+    WHERE r.trajet.id IN :trajetIds
+      AND r.statut = :statut
+    GROUP BY r.trajet.id
+    """)
+    List<PlacesReserveesParTrajet> sumReservedSeatsByTrajetIdsAndStatut(
+            @Param("trajetIds") List<Long> trajetIds,
             @Param("statut") StatutReservation statut
     );
 
@@ -43,14 +52,12 @@ public interface ReservationRepository
             Long passagerId
     );
 
-
-    @Query("""
-    SELECT r
-    FROM Reservation r
-    WHERE r.id = :reservationId
-    """)
-    Optional<Reservation> findByIdForUpdate(
-            @Param("reservationId") Long reservationId
+    List<Reservation> findByTrajetIdAndStatut(
+            Long trajetId,
+            StatutReservation statut
     );
 
+    List<Reservation> findByTrajetIdOrderByDateReservationDesc(
+            Long trajetId
+    );
 }
