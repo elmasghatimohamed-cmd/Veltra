@@ -11,6 +11,7 @@ public record TrajetResponse(
         Long vehiculeId,
         LocalDateTime dateDepart,
         int placesProposees,
+        long placesRestantes,
         StatutTrajet statut,
         List<PointArretResponse> pointsArret
 ) {}

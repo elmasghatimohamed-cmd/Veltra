@@ -5,11 +5,9 @@ import lombok.RequiredArgsConstructor;
 import ma.veltra.dto.request.ReservationCreateRequest;
 import ma.veltra.dto.response.ReservationResponse;
 import ma.veltra.services.ReservationService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -27,7 +25,7 @@ public class ReservationController {
                 reservationService.creerReservation(request);
 
         return ResponseEntity
-                .status(HttpStatus.CREATED)
+                .status(201)
                 .body(response);
     }
 
@@ -40,14 +38,12 @@ public class ReservationController {
         );
     }
 
-
     @PatchMapping("/{reservationId}/annulation")
-    public ResponseEntity<ReservationResponse> annulerReservation(
+    public ResponseEntity<Void> annulerReservation(
             @PathVariable Long reservationId
     ) {
-        return ResponseEntity.ok(
-                reservationService.annulerReservation(reservationId)
-        );
-    }
+        reservationService.annulerReservation(reservationId);
 
+        return ResponseEntity.noContent().build();
+    }
 }

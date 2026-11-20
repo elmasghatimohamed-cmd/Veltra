@@ -118,4 +118,18 @@ public class GlobalExceptionHandler {
 
         return problem;
     }
+
+    @ExceptionHandler(ForbiddenOperationException.class)
+    public ProblemDetail handleForbidden(
+            ForbiddenOperationException exception,
+            HttpServletRequest request
+    ) {
+        return buildProblem(
+                HttpStatus.FORBIDDEN,
+                "Forbidden operation",
+                "FORBIDDEN_OPERATION",
+                exception.getMessage(),
+                request
+        );
+    }
 }

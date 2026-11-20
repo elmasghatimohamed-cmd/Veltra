@@ -45,19 +45,6 @@ public class Passager {
         this.telephone = telephone;
     }
 
-    public void modifierCoordonnees(
-            String nom,
-            String prenom,
-            String email,
-            String telephone
-    ) {
-        this.nom = nom;
-        this.prenom = prenom;
-        this.email = email;
-        this.telephone = telephone;
-    }
-
-
     public void modifierInformations(
             String nom,
             String prenom,

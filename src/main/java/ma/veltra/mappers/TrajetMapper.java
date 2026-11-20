@@ -8,7 +8,8 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring", uses = PointArretMapper.class)
 public interface TrajetMapper {
 
-    @Mapping(target = "conducteurId", source = "conducteur.id")
-    @Mapping(target = "vehiculeId", source = "vehicule.id")
-    TrajetResponse toResponse(Trajet trajet);
+    @Mapping(target = "conducteurId", source = "trajet.conducteur.id")
+    @Mapping(target = "vehiculeId", source = "trajet.vehicule.id")
+    @Mapping(target = "placesRestantes", source = "placesRestantes")
+    TrajetResponse toResponse(Trajet trajet, long placesRestantes);
 }

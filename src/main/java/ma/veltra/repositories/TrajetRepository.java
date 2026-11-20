@@ -21,27 +21,7 @@ import java.util.Optional;
 public interface TrajetRepository
         extends JpaRepository<Trajet, Long> {
 
-    @Query("""
-    SELECT DISTINCT t
-    FROM Trajet t
-    JOIN FETCH t.conducteur
-    JOIN FETCH t.vehicule
-    LEFT JOIN FETCH t.pointsArret
-    WHERE t.conducteur.id = :conducteurId
-    """)
-    List<Trajet> findByConducteurId(
-            @Param("conducteurId") Long conducteurId
-    );
-
-    List<Trajet> findByVehiculeId(Long vehiculeId);
-
     boolean existsByVehiculeId(Long vehiculeId);
-
-    Page<Trajet> findByStatutAndDateDepartAfter(
-            StatutTrajet statut,
-            LocalDateTime dateDepart,
-            Pageable pageable
-    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM Trajet t WHERE t.id = :id")

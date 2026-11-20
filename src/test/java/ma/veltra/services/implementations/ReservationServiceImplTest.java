@@ -300,7 +300,7 @@ class ReservationServiceImplTest {
     }
 
     @Test
-    void annulerReservation_devraitRefuserApresDepart() {
+    void annulerReservation_devraitRefuserSiDelai24HeuresDepasse() {
         Reservation reservation = preparerAnnulation(
                 StatutTrajet.PUBLIE,
                 StatutReservation.CONFIRMEE,
@@ -309,7 +309,7 @@ class ReservationServiceImplTest {
 
         assertThatThrownBy(() -> reservationService.annulerReservation(10L))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("après le départ");
+                .hasMessageContaining("au moins 24 heures avant le départ");
 
         verify(reservation, never()).marquerAnnulee();
     }

@@ -4,9 +4,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import ma.veltra.dto.request.TrajetCreateRequest;
-import ma.veltra.dto.response.DisponibiliteResponse;
+import ma.veltra.dto.response.ReservationResponse;
 import ma.veltra.dto.response.TrajetResponse;
-import ma.veltra.services.DisponibiliteService;
+import ma.veltra.services.ReservationService;
 import ma.veltra.services.TrajetService;
 import org.springframework.data.domain.*;
 import org.springframework.data.web.PageableDefault;
@@ -25,7 +25,7 @@ import java.util.List;
 public class TrajetController {
 
     private final TrajetService trajetService;
-    private final DisponibiliteService disponibiliteService;
+    private final ReservationService reservationService;
 
     @PostMapping
     public ResponseEntity<TrajetResponse> create(
@@ -45,20 +45,12 @@ public class TrajetController {
         return ResponseEntity.ok(trajetService.findById(id));
     }
 
-    @GetMapping("/conducteur/{conducteurId}")
-    public ResponseEntity<List<TrajetResponse>> findByConducteurId(
-            @PathVariable Long conducteurId
-    ) {
-        return ResponseEntity.ok(
-                trajetService.findByConducteurId(conducteurId)
-        );
-    }
-
     @PatchMapping("/{id}/annulation")
-    public ResponseEntity<TrajetResponse> annuler(
-            @PathVariable Long id
-    ) {
-        return ResponseEntity.ok(trajetService.annuler(id));
+    public ResponseEntity<Void> annuler(@PathVariable Long id) {
+
+        trajetService.annuler(id);
+
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/terminaison")
@@ -92,14 +84,12 @@ public class TrajetController {
         );
     }
 
-
-    @GetMapping("/{trajetId}/disponibilite")
-    public ResponseEntity<DisponibiliteResponse> consulterDisponibilite(
+    @GetMapping("/{trajetId}/reservations")
+    public ResponseEntity<List<ReservationResponse>> reservationsDuTrajet(
             @PathVariable Long trajetId
     ) {
-        long placesRestantes = disponibiliteService.calculerPlacesRestantes(trajetId);
-
-        return ResponseEntity.ok(new DisponibiliteResponse(trajetId, placesRestantes));
+        return ResponseEntity.ok(
+                reservationService.reservationsDuTrajet(trajetId)
+        );
     }
-
 }

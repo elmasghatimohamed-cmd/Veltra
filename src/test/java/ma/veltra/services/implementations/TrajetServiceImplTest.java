@@ -5,13 +5,17 @@ import ma.veltra.dto.request.TrajetCreateRequest;
 import ma.veltra.dto.response.TrajetResponse;
 import ma.veltra.entities.Conducteur;
 import ma.veltra.entities.PointArret;
+import ma.veltra.entities.Reservation;
 import ma.veltra.entities.Trajet;
 import ma.veltra.entities.Vehicule;
 import ma.veltra.enums.StatutTrajet;
+import ma.veltra.enums.StatutReservation;
 import ma.veltra.exceptions.ResourceNotFoundException;
+import ma.veltra.exceptions.ForbiddenOperationException;
 import ma.veltra.mappers.TrajetMapper;
 import ma.veltra.repositories.ConducteurRepository;
 import ma.veltra.repositories.TrajetRepository;
+import ma.veltra.repositories.ReservationRepository;
 import ma.veltra.repositories.VehiculeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,6 +52,9 @@ class TrajetServiceImplTest {
 
     @Mock
     private TrajetMapper trajetMapper;
+
+    @Mock
+    private ReservationRepository reservationRepository;
 
     @InjectMocks
     private TrajetServiceImpl trajetService;
@@ -143,7 +150,7 @@ class TrajetServiceImplTest {
         when(trajetRepository.saveAndFlush(any(Trajet.class)))
                 .thenReturn(saved);
 
-        when(trajetMapper.toResponse(saved))
+        when(trajetMapper.toResponse(eq(saved), anyLong()))
                 .thenReturn(response);
 
         TrajetResponse result = trajetService.create(
@@ -156,7 +163,7 @@ class TrajetServiceImplTest {
                 ArgumentCaptor.forClass(Trajet.class);
 
         verify(trajetRepository).saveAndFlush(captor.capture());
-        verify(trajetMapper).toResponse(saved);
+        verify(trajetMapper).toResponse(eq(saved), anyLong());
 
         Trajet created = captor.getValue();
 
@@ -254,10 +261,13 @@ class TrajetServiceImplTest {
         when(conducteur.getId()).thenReturn(1L);
         when(vehicule.getId()).thenReturn(2L);
 
-        verifierRefus(
-                request(parcoursValide()),
-                "Ce véhicule n'appartient pas au conducteur"
+        ForbiddenOperationException exception = assertThrows(
+                ForbiddenOperationException.class,
+                () -> trajetService.create(request(parcoursValide()))
         );
+
+        assertEquals("Ce véhicule n'appartient pas au conducteur", exception.getMessage());
+        verify(trajetRepository, never()).saveAndFlush(any(Trajet.class));
     }
 
     @Test
@@ -467,22 +477,29 @@ class TrajetServiceImplTest {
         return trajet;
     }
 
+    private Trajet preparerTrajetPourAnnulation(StatutTrajet statut) {
+        Trajet trajet = mock(Trajet.class);
+        when(trajetRepository.findWithLockById(1L)).thenReturn(Optional.of(trajet));
+        when(trajet.getStatut()).thenReturn(statut);
+        return trajet;
+    }
+
     @Test
     void annuler_devraitAnnulerTrajetPublie() {
-        Trajet trajet = preparerTrajetPourChangementStatut(StatutTrajet.PUBLIE);
+        Trajet trajet = preparerTrajetPourAnnulation(StatutTrajet.PUBLIE);
         TrajetResponse response = mock(TrajetResponse.class);
 
-        when(trajetMapper.toResponse(trajet)).thenReturn(response);
+        when(trajetMapper.toResponse(eq(trajet), anyLong())).thenReturn(response);
 
         assertSame(response, trajetService.annuler(1L));
 
         verify(trajet).marquerAnnule();
-        verify(trajetMapper).toResponse(trajet);
+        verify(trajetMapper).toResponse(eq(trajet), anyLong());
     }
 
     @Test
     void annuler_devraitAnnulerTrajetComplet() {
-        Trajet trajet = preparerTrajetPourChangementStatut(StatutTrajet.COMPLET);
+        Trajet trajet = preparerTrajetPourAnnulation(StatutTrajet.COMPLET);
 
         trajetService.annuler(1L);
 
@@ -491,7 +508,7 @@ class TrajetServiceImplTest {
 
     @Test
     void annuler_devraitRefuserTrajetDejaAnnule() {
-        Trajet trajet = preparerTrajetPourChangementStatut(StatutTrajet.ANNULE);
+        Trajet trajet = preparerTrajetPourAnnulation(StatutTrajet.ANNULE);
 
         assertThrows(
                 IllegalStateException.class,
@@ -509,7 +526,10 @@ class TrajetServiceImplTest {
 
         when(trajet.getDateDepart())
                 .thenReturn(LocalDateTime.now().minusHours(3));
-        when(trajetMapper.toResponse(trajet)).thenReturn(response);
+        when(trajet.getId()).thenReturn(1L);
+        when(reservationRepository.sumReservedSeatsByTrajetAndStatut(
+                1L, StatutReservation.CONFIRMEE)).thenReturn(0L);
+        when(trajetMapper.toResponse(eq(trajet), anyLong())).thenReturn(response);
 
         assertSame(response, trajetService.terminer(1L));
 
@@ -521,6 +541,9 @@ class TrajetServiceImplTest {
         Trajet trajet = preparerTrajetPourChangementStatut(StatutTrajet.COMPLET);
         when(trajet.getDateDepart())
                 .thenReturn(LocalDateTime.now().minusDays(1));
+        when(trajet.getId()).thenReturn(1L);
+        when(reservationRepository.sumReservedSeatsByTrajetAndStatut(
+                1L, StatutReservation.CONFIRMEE)).thenReturn(0L);
 
         trajetService.terminer(1L);
 
@@ -555,7 +578,7 @@ class TrajetServiceImplTest {
 
     @Test
     void annuler_devraitRefuserTrajetIntrouvable() {
-        when(trajetRepository.findById(1L))
+        when(trajetRepository.findWithLockById(1L))
                 .thenReturn(Optional.empty());
 
         assertThrows(
@@ -575,4 +598,79 @@ class TrajetServiceImplTest {
         );
     }
 
+
+    @Test
+    void findById_devraitCalculerLesPlacesRestantes() {
+        Trajet trajet = mock(Trajet.class);
+        TrajetResponse response = mock(TrajetResponse.class);
+
+        when(trajetRepository.findDetailsById(11L)).thenReturn(Optional.of(trajet));
+        when(trajet.getId()).thenReturn(11L);
+        when(trajet.getPlacesProposees()).thenReturn(3);
+        when(reservationRepository.sumReservedSeatsByTrajetAndStatut(
+                11L, StatutReservation.CONFIRMEE)).thenReturn(1L);
+        when(trajetMapper.toResponse(trajet, 2L)).thenReturn(response);
+
+        assertSame(response, trajetService.findById(11L));
+        verify(trajetMapper).toResponse(trajet, 2L);
+    }
+
+    @Test
+    void rechercherTrajets_devraitCalculerDisponibilitesEnLot() {
+        Trajet elementPage = mock(Trajet.class);
+        Trajet detail = mock(Trajet.class);
+        TrajetResponse response = mock(TrajetResponse.class);
+        when(elementPage.getId()).thenReturn(11L);
+        when(detail.getId()).thenReturn(11L);
+        when(detail.getPlacesProposees()).thenReturn(3);
+
+        org.springframework.data.domain.Page<Trajet> page =
+                new org.springframework.data.domain.PageImpl<>(
+                        List.of(elementPage),
+                        org.springframework.data.domain.PageRequest.of(0, 10), 1);
+        when(trajetRepository.rechercherTrajetsAvecPrix(
+                eq("Rabat"), eq("Marrakech"), eq(depart), eq(StatutTrajet.PUBLIE),
+                isNull(), eq(1), eq(StatutReservation.CONFIRMEE),
+                any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(page);
+        when(trajetRepository.findAllWithDetailsByIdIn(List.of(11L)))
+                .thenReturn(List.of(detail));
+
+        ReservationRepository.PlacesReserveesParTrajet projection =
+                mock(ReservationRepository.PlacesReserveesParTrajet.class);
+        when(projection.getTrajetId()).thenReturn(11L);
+        when(projection.getPlacesReservees()).thenReturn(1L);
+        when(reservationRepository.sumReservedSeatsByTrajetIdsAndStatut(
+                List.of(11L), StatutReservation.CONFIRMEE))
+                .thenReturn(List.of(projection));
+        when(trajetMapper.toResponse(detail, 2L)).thenReturn(response);
+
+        org.springframework.data.domain.Page<TrajetResponse> result =
+                trajetService.rechercherTrajets(
+                        "Rabat", "Marrakech", depart, null, 1,
+                        org.springframework.data.domain.PageRequest.of(0, 10));
+
+        assertEquals(1, result.getTotalElements());
+        assertSame(response, result.getContent().getFirst());
+        verify(trajetMapper).toResponse(detail, 2L);
+        verify(reservationRepository, never()).sumReservedSeatsByTrajetAndStatut(
+                anyLong(), eq(StatutReservation.CONFIRMEE));
+    }
+
+    @Test
+    void annuler_devraitAnnulerToutesLesReservationsConfirmees() {
+        Trajet trajet = preparerTrajetPourAnnulation(StatutTrajet.PUBLIE);
+        Reservation premiere = mock(Reservation.class);
+        Reservation seconde = mock(Reservation.class);
+        when(reservationRepository.findByTrajetIdAndStatut(
+                1L, StatutReservation.CONFIRMEE))
+                .thenReturn(List.of(premiere, seconde));
+
+        trajetService.annuler(1L);
+
+        verify(premiere).marquerAnnulee();
+        verify(seconde).marquerAnnulee();
+        verify(trajet).marquerAnnule();
+        verify(trajetRepository).findWithLockById(1L);
+    }
 }
