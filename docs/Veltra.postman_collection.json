@@ -1,0 +1,1244 @@
+{
+  "info": {
+    "_postman_id": "47549818-3423-4659-be13-dcd53469d8d1",
+    "name": "Veltra",
+    "description": "Collection Veltra V5 corrigée et vérifiée statiquement. Exécuter les 25 requêtes dans l’ordre avec Collection Runner sur une base de développement. Les IDs et dates sont dynamiques. Les requêtes DELETE/PATCH sans payload ne transmettent aucun body. Les annulations et la suppression attendent 204, la terminaison prématurée attend 409. La recherche dateDepart à J+2 filtre les départs à partir de cette date et inclut le trajet à J+3. L’exécution HTTP réelle doit être vérifiée avec le backend démarré.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "52900059"
+  },
+  "item": [
+    {
+      "name": "Conducteur",
+      "item": [
+        {
+          "name": "Créer un conducteur",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Un nouvel identifiant de démonstration évite les conflits d'unicité à chaque exécution.",
+                  "pm.collectionVariables.set(\"runSuffix\", Date.now().toString(36));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Conducteur : ID retourné\", function () {",
+                  "        pm.expect(data.id).to.not.be.undefined;",
+                  "        pm.expect(data.id).to.not.be.null;",
+                  "    });",
+                  "    if (data.id != null) pm.collectionVariables.set(\"conducteurId\", String(data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"El Masghati\",\n  \"prenom\": \"Mohamed\",\n  \"email\": \"mohamed+{{runSuffix}}@example.com\",\n  \"telephone\": \"0611111111\",\n  \"numeroPermis\": \"PERMIS{{runSuffix}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conducteurs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "conducteurs"
+              ]
+            },
+            "description": "Démarre une nouvelle exécution : génère runSuffix et enregistre conducteurId."
+          },
+          "response": []
+        },
+        {
+          "name": "Afficher un conducteur par ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Conducteur créé retrouvé\", () => pm.expect(String(pm.response.json().id)).to.eql(pm.collectionVariables.get(\"conducteurId\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/conducteurs/{{conducteurId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "conducteurs",
+                "{{conducteurId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Lister les conducteurs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/conducteurs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "conducteurs"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Rechercher un conducteur",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/conducteurs/search?email={{runSuffix}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "conducteurs",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{runSuffix}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Modifier le profil du conducteur",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"El Masghati\",\n  \"telephone\": \"0699999999\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conducteurs/{{conducteurId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "conducteurs",
+                "{{conducteurId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Création, lecture, recherche et mise à jour du conducteur."
+    },
+    {
+      "name": "Passager",
+      "item": [
+        {
+          "name": "Créer un passager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Passager : ID retourné\", function () {",
+                  "        pm.expect(data.id).to.not.be.undefined;",
+                  "        pm.expect(data.id).to.not.be.null;",
+                  "    });",
+                  "    if (data.id != null) pm.collectionVariables.set(\"passagerId\", String(data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Benani\",\n  \"prenom\": \"Walid\",\n  \"email\": \"walid+{{runSuffix}}@example.com\",\n  \"telephone\": \"0633333333\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/passagers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "passagers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Afficher un passager par ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/passagers/{{passagerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "passagers",
+                "{{passagerId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Lister les passagers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/passagers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "passagers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Rechercher un passager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/passagers/search?email={{runSuffix}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "passagers",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{runSuffix}}"
+                }
+              ]
+            },
+            "description": "Correction : le point de recherche est /api/passagers/search et non /api/passagers?nom=..."
+          },
+          "response": []
+        },
+        {
+          "name": "Modifier le profil du passager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telephone\": \"0698888888\",\n  \"prenom\": \"Youssef Amine\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/passagers/{{passagerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "passagers",
+                "{{passagerId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Création, lecture, recherche et mise à jour du passager."
+    },
+    {
+      "name": "Véhicule",
+      "item": [
+        {
+          "name": "Créer un véhicule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Véhicule : ID retourné\", function () {",
+                  "        pm.expect(data.id).to.not.be.undefined;",
+                  "        pm.expect(data.id).to.not.be.null;",
+                  "    });",
+                  "    if (data.id != null) pm.collectionVariables.set(\"vehiculeId\", String(data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conducteurId\": {{conducteurId}},\n  \"marque\": \"BMW\",\n  \"modele\": \"M8\",\n  \"immatriculation\": \"VEL-{{runSuffix}}\",\n  \"couleur\": \"Noir\",\n  \"capacite\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicules"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Consulter un véhicule par ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicules/{{vehiculeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicules",
+                "{{vehiculeId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Lister les véhicules du conducteur",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicules?conducteurId={{conducteurId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicules"
+              ],
+              "query": [
+                {
+                  "key": "conducteurId",
+                  "value": "{{conducteurId}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Modifier un véhicule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"couleur\": \"Bleu\",\n  \"capacite\": 6\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicules/{{vehiculeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicules",
+                "{{vehiculeId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Créer un véhicule temporaire (test suppression)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Véhicule temporaire : ID retourné\", function () {",
+                  "        pm.expect(data.id).to.not.be.undefined;",
+                  "        pm.expect(data.id).to.not.be.null;",
+                  "    });",
+                  "    if (data.id != null) pm.collectionVariables.set(\"vehiculeASupprimerId\", String(data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conducteurId\": {{conducteurId}},\n  \"marque\": \"Renault\",\n  \"modele\": \"Clio\",\n  \"immatriculation\": \"TEMP-{{runSuffix}}\",\n  \"couleur\": \"Gris\",\n  \"capacite\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicules"
+              ]
+            },
+            "description": "Véhicule distinct, non utilisé par les trajets. Évite de supprimer le véhicule principal."
+          },
+          "response": []
+        },
+        {
+          "name": "Supprimer le véhicule temporaire",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.test(\"Réponse sans contenu\", function () {",
+                  "    pm.expect(pm.response.text()).to.eql(\"\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicules/{{vehiculeASupprimerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicules",
+                "{{vehiculeASupprimerId}}"
+              ]
+            },
+            "description": "Supprime uniquement le véhicule temporaire non lié à un trajet."
+          },
+          "response": []
+        }
+      ],
+      "description": "Création du véhicule principal et suppression sécurisée d’un véhicule temporaire."
+    },
+    {
+      "name": "Trajets",
+      "item": [
+        {
+          "name": "Créer un trajet",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Les dates sont calculées dans le fuseau horaire de Casablanca, puis réutilisées par les autres requêtes.\nconst timeZone = \"Africa/Casablanca\";\nfunction formatMoroccoDate(date) {\n    const parts = new Intl.DateTimeFormat(\"en-GB\", {\n        timeZone,\n        year: \"numeric\", month: \"2-digit\", day: \"2-digit\",\n        hour: \"2-digit\", minute: \"2-digit\", second: \"2-digit\", hourCycle: \"h23\"\n    }).formatToParts(date);\n    const get = type => parts.find(p => p.type === type).value;\n    return `${get(\"year\")}-${get(\"month\")}-${get(\"day\")}T${get(\"hour\")}:${get(\"minute\")}:${get(\"second\")}`;\n}\nconst now = Date.now();\nconst day = 24 * 60 * 60 * 1000;\npm.collectionVariables.set(\"depart\", formatMoroccoDate(new Date(now + 3 * day)));\npm.collectionVariables.set(\"arrivee\", formatMoroccoDate(new Date(now + 3 * day + 60 * 60 * 1000)));\npm.collectionVariables.set(\"dateRecherche\", formatMoroccoDate(new Date(now + 2 * day)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () {\n    pm.response.to.have.status(201);\n});\n\nif (pm.response.code === 201) {\n    const data = pm.response.json();\n    pm.test(\"Trajet : ID retourné\", function () {\n        pm.expect(data.id).to.not.be.undefined;\n        pm.expect(data.id).to.not.be.null;\n    });\n    if (data.id != null) pm.collectionVariables.set(\"trajetId\", String(data.id));\n}\n\nfunction enregistrerArrets(data) {\n    if (!Array.isArray(data.pointsArret)) return;\n    const depart = data.pointsArret.find(p => p.ville === \"Nador\");\n    const arrivee = data.pointsArret.find(p => p.ville === \"Fes\");\n    if (depart && depart.id != null) pm.collectionVariables.set(\"pointMonteeId\", String(depart.id));\n    if (arrivee && arrivee.id != null) pm.collectionVariables.set(\"pointDescenteId\", String(arrivee.id));\n}\n\nif (pm.response.code === 201) enregistrerArrets(pm.response.json());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conducteurId\": {{conducteurId}},\n  \"vehiculeId\": {{vehiculeId}},\n  \"dateDepart\": \"{{depart}}\",\n  \"placesProposees\": 3,\n  \"pointsArret\": [\n    {\n      \"ville\": \"Nador\",\n      \"ordre\": 0,\n      \"heurePassage\": \"{{depart}}\",\n      \"prixDepuisDepart\": 0\n    },\n    {\n      \"ville\": \"Fes\",\n      \"ordre\": 1,\n      \"heurePassage\": \"{{arrivee}}\",\n      \"prixDepuisDepart\": 100\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/trajets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trajets"
+              ]
+            },
+            "description": "Crée un trajet à J+3, avec deux arrêts, et mémorise les IDs de ses arrêts."
+          },
+          "response": []
+        },
+        {
+          "name": "Consulter le trajet et récupérer les arrêts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "function enregistrerArrets(data) {",
+                  "    if (!Array.isArray(data.pointsArret)) return;",
+                  "    const depart = data.pointsArret.find(p => p.ville === \"Nador\");",
+                  "    const arrivee = data.pointsArret.find(p => p.ville === \"Fes\");",
+                  "    if (depart && depart.id != null) pm.collectionVariables.set(\"pointMonteeId\", String(depart.id));",
+                  "    if (arrivee && arrivee.id != null) pm.collectionVariables.set(\"pointDescenteId\", String(arrivee.id));",
+                  "}",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    enregistrerArrets(data);",
+                  "    pm.test(\"Arrêts Nador et Fes identifiés\", function () {",
+                  "        pm.expect(pm.collectionVariables.get(\"pointMonteeId\")).to.be.ok;",
+                  "        pm.expect(pm.collectionVariables.get(\"pointDescenteId\")).to.be.ok;",
+                  "    });",
+                  "    pm.test(\"Places restantes présentes\", () => pm.expect(data.placesRestantes).to.not.be.undefined);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/trajets/{{trajetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trajets",
+                "{{trajetId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Rechercher un trajet",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Recherche paginée\", () => pm.expect(data.content).to.be.an(\"array\"));",
+                  "    pm.test(\"Le trajet créé apparaît dans la recherche\", function () {",
+                  "        pm.expect(data.content.some(t => String(t.id) === pm.collectionVariables.get(\"trajetId\"))).to.be.true;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/trajets/search?villeDepart=Nador&villeArrivee=Fes&dateDepart={{dateRecherche}}&nombrePlaces=2&page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trajets",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "villeDepart",
+                  "value": "Nador"
+                },
+                {
+                  "key": "villeArrivee",
+                  "value": "Fes"
+                },
+                {
+                  "key": "dateDepart",
+                  "value": "{{dateRecherche}}"
+                },
+                {
+                  "key": "nombrePlaces",
+                  "value": "2"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Terminer un trajet avant départ (refus attendu)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trajets/{{trajetId}}/terminaison",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trajets",
+                "{{trajetId}}",
+                "terminaison"
+              ]
+            },
+            "description": "Test métier négatif : le trajet part dans trois jours. Le refus HTTP 409 est attendu."
+          },
+          "response": []
+        }
+      ],
+      "description": "Publication, détail, recherche et contrôle de terminaison prématurée."
+    },
+    {
+      "name": "Réservations et annulations",
+      "item": [
+        {
+          "name": "Créer une réservation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Réservation : ID retourné\", function () {",
+                  "        pm.expect(data.id).to.not.be.undefined;",
+                  "        pm.expect(data.id).to.not.be.null;",
+                  "    });",
+                  "    if (data.id != null) pm.collectionVariables.set(\"reservationId\", String(data.id));",
+                  "}",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Montant du segment = 100 MAD\", () => pm.expect(Number(data.montantTotal)).to.eql(100));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passagerId\": {{passagerId}},\n  \"trajetId\": {{trajetId}},\n  \"pointMonteeId\": {{pointMonteeId}},\n  \"pointDescenteId\": {{pointDescenteId}},\n  \"nombrePlaces\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reservations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reservations"
+              ]
+            },
+            "description": "Réserve une place entre Nador et Fes. Les IDs des arrêts proviennent du détail du trajet."
+          },
+          "response": []
+        },
+        {
+          "name": "Lister les réservations du trajet",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Liste de réservations retournée\", () => pm.expect(data).to.be.an(\"array\"));",
+                  "    pm.test(\"Réservation créée présente\", () => pm.expect(data.some(r => String(r.id) === pm.collectionVariables.get(\"reservationId\"))).to.be.true);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/trajets/{{trajetId}}/reservations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trajets",
+                "{{trajetId}}",
+                "reservations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Historique des réservations du passager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Historique retourné\", () => pm.expect(data).to.be.an(\"array\"));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reservations/passager/{{passagerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reservations",
+                "passager",
+                "{{passagerId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Annuler la réservation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.test(\"Réponse sans contenu\", function () {",
+                  "    pm.expect(pm.response.text()).to.eql(\"\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reservations/{{reservationId}}/annulation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reservations",
+                "{{reservationId}}",
+                "annulation"
+              ]
+            },
+            "description": "La date de départ est à J+3 : le délai minimum de 24 heures est respecté."
+          },
+          "response": []
+        },
+        {
+          "name": "Annuler le trajet",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.test(\"Réponse sans contenu\", function () {",
+                  "    pm.expect(pm.response.text()).to.eql(\"\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trajets/{{trajetId}}/annulation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trajets",
+                "{{trajetId}}",
+                "annulation"
+              ]
+            },
+            "description": "Doit être exécuté après la création et les consultations des réservations. Cette action met le trajet au statut ANNULE."
+          },
+          "response": []
+        }
+      ],
+      "description": "Réservation, consultations, annulation de la réservation puis du trajet."
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "runSuffix",
+      "value": ""
+    },
+    {
+      "key": "conducteurId",
+      "value": ""
+    },
+    {
+      "key": "passagerId",
+      "value": ""
+    },
+    {
+      "key": "vehiculeId",
+      "value": ""
+    },
+    {
+      "key": "vehiculeASupprimerId",
+      "value": ""
+    },
+    {
+      "key": "trajetId",
+      "value": ""
+    },
+    {
+      "key": "pointMonteeId",
+      "value": ""
+    },
+    {
+      "key": "pointDescenteId",
+      "value": ""
+    },
+    {
+      "key": "reservationId",
+      "value": ""
+    },
+    {
+      "key": "depart",
+      "value": ""
+    },
+    {
+      "key": "arrivee",
+      "value": ""
+    },
+    {
+      "key": "dateRecherche",
+      "value": ""
+    }
+  ]
+}

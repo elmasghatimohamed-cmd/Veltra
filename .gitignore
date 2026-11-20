@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### .env file ###
+.env
+
+### Audit ###
+veltra-audit
+Test-Veltra-VEL31.ps1

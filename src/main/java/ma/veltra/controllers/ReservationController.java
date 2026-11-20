@@ -1,0 +1,49 @@
+package ma.veltra.controllers;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import ma.veltra.dto.request.ReservationCreateRequest;
+import ma.veltra.dto.response.ReservationResponse;
+import ma.veltra.services.ReservationService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/reservations")
+@RequiredArgsConstructor
+public class ReservationController {
+
+    private final ReservationService reservationService;
+
+    @PostMapping
+    public ResponseEntity<ReservationResponse> creerReservation(
+            @Valid @RequestBody ReservationCreateRequest request
+    ) {
+        ReservationResponse response =
+                reservationService.creerReservation(request);
+
+        return ResponseEntity
+                .status(201)
+                .body(response);
+    }
+
+    @GetMapping("/passager/{passagerId}")
+    public ResponseEntity<List<ReservationResponse>> historiquePassager(
+            @PathVariable Long passagerId
+    ) {
+        return ResponseEntity.ok(
+                reservationService.historiquePassager(passagerId)
+        );
+    }
+
+    @PatchMapping("/{reservationId}/annulation")
+    public ResponseEntity<Void> annulerReservation(
+            @PathVariable Long reservationId
+    ) {
+        reservationService.annulerReservation(reservationId);
+
+        return ResponseEntity.noContent().build();
+    }
+}
