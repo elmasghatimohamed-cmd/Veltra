@@ -85,4 +85,28 @@ public interface TrajetRepository
     List<Trajet> findAllWithDetailsByIdIn(
             @Param("ids") List<Long> ids
     );
+
+    @Query("""
+    SELECT CASE WHEN COUNT(t) > 0 THEN true ELSE false END
+    FROM Trajet t
+    WHERE (
+        t.conducteur.id = :conducteurId
+        OR t.vehicule.id = :vehiculeId
+    )
+    AND t.statut IN :statuts
+    AND t.dateDepart < :fin
+    AND EXISTS (
+        SELECT p.id
+        FROM PointArret p
+        WHERE p.trajet = t
+        AND p.heurePassage > :debut
+    )
+    """)
+    boolean existsChevauchement(
+            @Param("conducteurId") Long conducteurId,
+            @Param("vehiculeId") Long vehiculeId,
+            @Param("debut") LocalDateTime debut,
+            @Param("fin") LocalDateTime fin,
+            @Param("statuts") List<StatutTrajet> statuts
+    );
 }

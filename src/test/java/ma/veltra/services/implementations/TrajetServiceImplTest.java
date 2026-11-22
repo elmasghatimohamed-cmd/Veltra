@@ -101,7 +101,7 @@ class TrajetServiceImplTest {
     }
 
     private void mockConducteurEtVehicule() {
-        when(conducteurRepository.findById(1L))
+        when(conducteurRepository.findWithLockById(1L))
                 .thenReturn(Optional.of(conducteur));
 
         when(vehiculeRepository.findById(2L))
@@ -217,7 +217,7 @@ class TrajetServiceImplTest {
 
     @Test
     void create_shouldRejectMissingConductor() {
-        when(conducteurRepository.findById(1L))
+        when(conducteurRepository.findWithLockById(1L))
                 .thenReturn(Optional.empty());
 
         assertThrows(
@@ -233,7 +233,7 @@ class TrajetServiceImplTest {
 
     @Test
     void create_shouldRejectMissingVehicle() {
-        when(conducteurRepository.findById(1L))
+        when(conducteurRepository.findWithLockById(1L))
                 .thenReturn(Optional.of(conducteur));
 
         when(vehiculeRepository.findById(2L))
@@ -252,7 +252,7 @@ class TrajetServiceImplTest {
 
     @Test
     void create_shouldRejectVehicleFromAnotherDriver() {
-        when(conducteurRepository.findById(1L))
+        when(conducteurRepository.findWithLockById(1L))
                 .thenReturn(Optional.of(conducteur));
 
         when(vehiculeRepository.findById(2L))
@@ -672,5 +672,35 @@ class TrajetServiceImplTest {
         verify(seconde).marquerAnnulee();
         verify(trajet).marquerAnnule();
         verify(trajetRepository).findWithLockById(1L);
+    }
+
+    @Test
+    void create_shouldRejectOverlappingTrip() {
+        mockConducteurEtVehicule();
+
+        when(trajetRepository.existsChevauchement(
+                eq(1L),
+                eq(2L),
+                eq(depart),
+                eq(depart.plusHours(6)),
+                eq(List.of(
+                        StatutTrajet.PUBLIE,
+                        StatutTrajet.COMPLET
+                ))
+        )).thenReturn(true);
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> trajetService.create(
+                        request(parcoursValide())
+                )
+        );
+
+        assertTrue(
+                exception.getMessage().contains("Conflit horaire")
+        );
+
+        verify(trajetRepository, never())
+                .saveAndFlush(any(Trajet.class));
     }
 }

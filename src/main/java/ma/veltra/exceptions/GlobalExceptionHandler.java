@@ -12,15 +12,19 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.web.ErrorResponse;
 
 import java.net.URI;
 import java.time.OffsetDateTime;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private ProblemDetail buildProblem(
-            HttpStatus status,
+            HttpStatusCode status,
             String title,
             String code,
             String message,
@@ -204,5 +208,52 @@ public class GlobalExceptionHandler {
                 "Le corps JSON de la requête est absent ou mal formé.",
                 request
         );
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ProblemDetail> handleUnexpected(
+            Exception ex,
+            HttpServletRequest request
+    ) {
+        if (ex instanceof ErrorResponse errorResponse) {
+            var status = errorResponse.getStatusCode();
+
+            if (status.is5xxServerError()) {
+                log.error("Erreur interne : {}", request.getRequestURI(), ex);
+            }
+
+            String message = status.is5xxServerError()
+                    ? "Une erreur interne est survenue."
+                    : errorResponse.getBody().getDetail();
+
+            if (message == null) {
+                message = "Erreur lors du traitement de la requête";
+            }
+
+            return ResponseEntity.status(status)
+                    .headers(errorResponse.getHeaders())
+                    .body(buildProblem(
+                            status,
+                            status.is5xxServerError()
+                                    ? "Internal server error"
+                                    : "HTTP error",
+                            status.is5xxServerError()
+                                    ? "INTERNAL_ERROR"
+                                    : "HTTP_ERROR",
+                            message,
+                            request
+                    ));
+        }
+
+        log.error("Erreur interne : {}", request.getRequestURI(), ex);
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(buildProblem(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Internal server error",
+                        "INTERNAL_ERROR",
+                        "Une erreur interne est survenue.",
+                        request
+                ));
     }
 }

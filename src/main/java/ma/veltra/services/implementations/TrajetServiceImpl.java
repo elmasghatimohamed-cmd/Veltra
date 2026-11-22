@@ -55,7 +55,7 @@ public class TrajetServiceImpl implements TrajetService {
     public TrajetResponse create(TrajetCreateRequest request) {
         Objects.requireNonNull(request, "La demande de création est obligatoire");
 
-        Conducteur conducteur = conducteurRepository.findById(request.conducteurId())
+        Conducteur conducteur = conducteurRepository.findWithLockById(request.conducteurId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Conducteur introuvable : " + request.conducteurId()));
         Vehicule vehicule = vehiculeRepository.findById(request.vehiculeId())
@@ -64,6 +64,23 @@ public class TrajetServiceImpl implements TrajetService {
 
         validerPublication(request, conducteur, vehicule);
         List<PointArretCreateRequest> points = preparerPointsArret(request);
+
+        LocalDateTime fin = points.getLast().heurePassage();
+
+        boolean conflit = trajetRepository.existsChevauchement(
+                conducteur.getId(),
+                vehicule.getId(),
+                request.dateDepart(),
+                fin,
+                List.of(StatutTrajet.PUBLIE, StatutTrajet.COMPLET)
+        );
+
+        if (conflit) {
+            throw new IllegalStateException(
+                    "Conflit horaire : ce conducteur ou ce véhicule " +
+                            "est déjà affecté à un autre trajet sur cette période"
+            );
+        }
 
         Trajet trajet = new Trajet(request.dateDepart(), request.placesProposees(), conducteur, vehicule);
         for (PointArretCreateRequest point : points) {

@@ -341,4 +341,24 @@ class ReservationServiceImplTest {
         verifyNoInteractions(trajetRepository, entityManager);
     }
 
+    @Test
+    void creerReservation_devraitRefuserTrajetComplet() {
+        when(trajetRepository.findWithLockById(2L))
+                .thenReturn(Optional.of(trajet));
+
+        when(trajet.getStatut())
+                .thenReturn(StatutTrajet.COMPLET);
+
+        assertThatThrownBy(
+                () -> reservationService.creerReservation(request)
+        )
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                        "Ce trajet est complet. Aucune place disponible."
+                );
+
+        verify(reservationRepository, never())
+                .save(any(Reservation.class));
+    }
+
 }
