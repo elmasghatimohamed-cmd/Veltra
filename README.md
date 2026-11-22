@@ -1,42 +1,84 @@
+
 # Veltra
 
-**Veltra** est une API REST de covoiturage développée avec **Java 25**, **Spring Boot 4.1.2** et **PostgreSQL 16**. Elle permet de gérer les conducteurs, les passagers, les véhicules, les trajets avec arrêts intermédiaires et les réservations.
+**Veltra** est une API REST de covoiturage développée avec **Java 25, Spring Boot 4.1.2 et PostgreSQL 16**.
 
-> Projet backend pédagogique. Le périmètre actuel ne comprend ni authentification ni interface utilisateur.
+Elle permet de gérer les conducteurs, les passagers, les véhicules et les trajets comportant plusieurs points d'arrêt, ainsi que les réservations de places entre deux villes d'un même trajet.
+
+L'application intègre les règles métier liées à la disponibilité des places, au calcul des tarifs par segment, aux annulations et à la gestion des réservations concurrentes.
+
+> Projet backend pédagogique, sans authentification ni interface utilisateur.
 
 ## Fonctionnalités
 
-- Gestion des conducteurs et passagers (création, consultation, recherche et mise à jour).
-- Gestion des véhicules, avec suppression autorisée uniquement lorsqu'ils ne sont liés à aucun trajet.
-- Publication de trajets avec des arrêts ordonnés, des horaires et des prix cumulés.
-- Recherche de trajets par segment, date de départ, prix maximal et nombre de places, avec pagination.
-- Réservation de places sur un segment et calcul du montant total.
-- Consultation de l'historique des réservations d'un passager et des réservations d'un trajet.
-- Annulation des réservations et des trajets, et clôture des trajets après le départ.
-- Validation des données, gestion centralisée des erreurs et journalisation des opérations métier.
+### Gestion des utilisateurs et véhicules
+- Création, consultation, recherche et modification des conducteurs et passagers.
+- Enregistrement et gestion des véhicules associés aux conducteurs.
+- Contrôle de la capacité des véhicules et de leur utilisation dans les trajets.
+- Suppression d'un véhicule uniquement lorsqu'il n'est associé à aucun trajet.
+
+### Gestion des trajets
+- Publication de trajets avec points d'arrêt intermédiaires ordonnés.
+- Définition des horaires de passage et des tarifs cumulés.
+- Recherche de trajets par villes de départ et d'arrivée, date, budget et places disponibles.
+- Pagination et tri des résultats.
+- Gestion du cycle de vie des trajets : `PUBLIE`, `COMPLET`, `ANNULE`, `TERMINE`.
+
+### Gestion des réservations
+- Réservation d'une ou plusieurs places entre deux points d'arrêt.
+- Vérification de l'ordre des arrêts et des places disponibles.
+- Calcul automatique du tarif selon le segment et le nombre de places.
+- Consultation des réservations par passager ou par trajet.
+- Annulation des réservations selon les contraintes temporelles.
+- Annulation automatique des réservations confirmées lors de l'annulation d'un trajet.
+- Protection contre les réservations concurrentes susceptibles de provoquer un surbooking.
+
+### Qualité et fiabilité
+- Validation des données entrantes avec Jakarta Bean Validation.
+- Gestion centralisée des exceptions et des réponses d'erreur.
+- Transactions Spring pour les opérations métier.
+- Verrouillage pessimiste lors de la création des réservations.
+- Journalisation des opérations métier.
+- Tests automatisés avec JUnit, Mockito et AssertJ.
 
 ## Stack technique
 
 | Composant | Technologie |
-| --- | --- |
+|---|---|
 | Langage | Java 25 |
 | Framework | Spring Boot 4.1.2, Spring MVC |
-| Persistance | Spring Data JPA / Hibernate |
+| Persistance | Spring Data JPA, Hibernate |
 | Base de données | PostgreSQL 16 |
 | Migrations | Flyway |
-| Mapping | MapStruct 1.6.3 |
+| Mapping DTO | MapStruct 1.6.3 |
 | Validation | Jakarta Bean Validation |
-| Tests | JUnit, Mockito, AssertJ (via les starters de test Spring Boot) |
-| Conteneurisation | Docker Compose (PostgreSQL) |
+| Tests | JUnit, Mockito, AssertJ |
+| Conteneurisation | Docker Compose |
 | Build | Maven Wrapper |
+
+## Architecture
+
+L'application adopte une architecture backend en couches afin de séparer les responsabilités :
+
+- **Controllers** : exposition des endpoints REST et traitement des requêtes HTTP.
+- **DTOs** : définition des contrats d'entrée et de sortie.
+- **Services** : implémentation des règles métier et gestion transactionnelle.
+- **Repositories** : accès aux données avec Spring Data JPA.
+- **Entities** : représentation du modèle métier et des relations JPA.
+- **Mappers** : conversion entre entités et DTOs avec MapStruct.
+- **Exceptions** : gestion centralisée des erreurs fonctionnelles et techniques.
+
+La persistance repose sur PostgreSQL. Les migrations sont gérées par Flyway et la conformité du schéma est vérifiée par Hibernate avec `ddl-auto: validate`.
+
+Les points d'arrêt sont rattachés à leur trajet et représentent son itinéraire ordonné. Ils sont également utilisés pour identifier les segments de réservation et calculer leurs tarifs.
 
 ## Démarrage local
 
 ### Prérequis
 
-- JDK **25** configuré pour le projet.
-- Docker avec Docker Compose.
-- Un terminal PowerShell sous Windows (commandes ci-dessous).
+- JDK 25
+- Docker et Docker Compose
+- PowerShell sous Windows
 
 ### 1. Cloner le dépôt
 
@@ -45,15 +87,15 @@ git clone https://github.com/elmasghatimohamed-cmd/Veltra.git
 cd Veltra
 ```
 
-### 2. Configurer PostgreSQL
+### 2. Configurer l'environnement
 
-Créer le fichier local `.env` à partir de `.env.example`, puis renseigner les valeurs de votre choix. Ne jamais versionner le fichier `.env`.
+Créer le fichier `.env` à partir du modèle fourni :
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Exemple des clés attendues :
+Variables attendues :
 
 ```dotenv
 POSTGRES_DB=veltra_db
@@ -61,9 +103,11 @@ POSTGRES_USER=veltra_user
 POSTGRES_PASSWORD=change-me-locally
 ```
 
-**Important :** le fichier `application.yaml` lit `POSTGRES_USER` et `POSTGRES_PASSWORD` depuis **l'environnement du processus Java**. Un fichier `.env` utilisé par Docker Compose n'est pas automatiquement chargé par Spring Boot.
+Le fichier `.env` doit rester local et ne doit pas être versionné.
 
-Pour une session PowerShell locale, charger les variables :
+**Important :** Spring Boot récupère les identifiants PostgreSQL depuis les variables d'environnement du processus Java. Docker Compose ne transmet pas automatiquement le contenu du fichier `.env` à l'application.
+
+Sous PowerShell, charger les variables avec :
 
 ```powershell
 Get-Content .env | ForEach-Object {
@@ -73,29 +117,33 @@ Get-Content .env | ForEach-Object {
 }
 ```
 
-### 3. Démarrer la base de données
+### 3. Démarrer PostgreSQL
 
 ```powershell
 docker compose up -d --wait
 ```
 
-Le conteneur PostgreSQL écoute sur **127.0.0.1:5433** et utilise un volume Docker pour conserver les données.
+PostgreSQL est accessible sur `127.0.0.1:5433`. Les données sont conservées dans un volume Docker.
 
-### 4. Exécuter l'application
+### 4. Lancer l'application
 
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-L'API est disponible par défaut sur **http://localhost:8080**. Flyway applique la migration initiale située dans `src/main/resources/db/migration/` ; Hibernate vérifie la cohérence du schéma via `ddl-auto: validate`.
+L'API est accessible sur :
 
-### 5. Compiler et tester
+`http://localhost:8080`
+
+Au démarrage, Flyway applique les migrations SQL disponibles dans `src/main/resources/db/migration/`.
+
+### 5. Compiler et exécuter les tests
 
 ```powershell
 .\mvnw.cmd clean verify
 ```
 
-Pour construire le JAR et l'exécuter après compilation :
+Pour exécuter le JAR généré :
 
 ```powershell
 java -jar .\target\veltra-0.0.1-SNAPSHOT.jar
@@ -103,43 +151,79 @@ java -jar .\target\veltra-0.0.1-SNAPSHOT.jar
 
 ## API REST
 
-URL de base : `http://localhost:8080`
+**URL de base :** `http://localhost:8080`
 
-| Méthode | Endpoint | Action |
-| --- | --- | --- |
+### Conducteurs
+
+| Méthode | Endpoint | Description |
+|---|---|---|
 | POST | `/api/conducteurs` | Créer un conducteur |
 | GET | `/api/conducteurs` | Lister les conducteurs |
 | GET | `/api/conducteurs/{id}` | Consulter un conducteur |
-| GET | `/api/conducteurs/search?nom=...` ou `?email=...` | Rechercher un conducteur |
+| GET | `/api/conducteurs/search` | Rechercher par nom ou email |
 | PATCH | `/api/conducteurs/{id}` | Modifier un conducteur |
+
+### Passagers
+
+| Méthode | Endpoint | Description |
+|---|---|---|
 | POST | `/api/passagers` | Créer un passager |
 | GET | `/api/passagers` | Lister les passagers |
 | GET | `/api/passagers/{id}` | Consulter un passager |
-| GET | `/api/passagers/search?email=...` | Rechercher un passager |
+| GET | `/api/passagers/search` | Rechercher par email |
 | PATCH | `/api/passagers/{id}` | Modifier un passager |
+
+### Véhicules
+
+| Méthode | Endpoint | Description |
+|---|---|---|
 | POST | `/api/vehicules` | Ajouter un véhicule |
 | GET | `/api/vehicules/{id}` | Consulter un véhicule |
-| GET | `/api/vehicules?conducteurId=...` | Lister les véhicules d'un conducteur |
+| GET | `/api/vehicules?conducteurId={id}` | Lister les véhicules d'un conducteur |
 | PATCH | `/api/vehicules/{id}` | Modifier un véhicule |
-| DELETE | `/api/vehicules/{id}` | Supprimer un véhicule non lié à un trajet |
+| DELETE | `/api/vehicules/{id}` | Supprimer un véhicule non utilisé |
+
+### Trajets
+
+| Méthode | Endpoint | Description |
+|---|---|---|
 | POST | `/api/trajets` | Publier un trajet |
 | GET | `/api/trajets/{id}` | Consulter un trajet |
 | GET | `/api/trajets/search` | Rechercher des trajets |
-| GET | `/api/trajets/{trajetId}/reservations` | Consulter les réservations du trajet |
+| GET | `/api/trajets/{trajetId}/reservations` | Consulter les réservations |
 | PATCH | `/api/trajets/{id}/annulation` | Annuler un trajet |
 | PATCH | `/api/trajets/{id}/terminaison` | Terminer un trajet |
-| POST | `/api/reservations` | Réserver des places |
-| GET | `/api/reservations/passager/{passagerId}` | Consulter l'historique d'un passager |
+
+### Réservations
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| POST | `/api/reservations` | Effectuer une réservation |
+| GET | `/api/reservations/passager/{passagerId}` | Consulter l'historique |
 | PATCH | `/api/reservations/{reservationId}/annulation` | Annuler une réservation |
 
-La recherche des trajets exige les paramètres `villeDepart`, `villeArrivee` et `dateDepart` (date ISO, par exemple `2026-12-10T09:00:00`). Les paramètres `prixMax`, `nombrePlaces`, `page` et `size` sont facultatifs. Les résultats sont paginés et ordonnés par date de départ croissante.
+### Recherche de trajets
 
-### Exemple : publier un trajet
+`GET /api/trajets/search`
 
-```http
-POST /api/trajets
-Content-Type: application/json
-```
+**Paramètres obligatoires :**
+- `villeDepart`
+- `villeArrivee`
+- `dateDepart` au format ISO 8601
+
+**Paramètres facultatifs :**
+- `prixMax`
+- `nombrePlaces`
+- `page`
+- `size`
+
+Les résultats sont paginés et triés par date de départ croissante.
+
+## Exemples d'utilisation
+
+### Publier un trajet
+
+`POST /api/trajets`
 
 ```json
 {
@@ -164,11 +248,11 @@ Content-Type: application/json
 }
 ```
 
-Les identifiants de conducteur et de véhicule sont des exemples ; ils doivent exister et le véhicule doit appartenir au conducteur.
+Le conducteur et le véhicule doivent exister dans la base de données. Le véhicule doit appartenir au conducteur.
 
-### Exemple : réserver
+### Réserver des places
 
-Après création du trajet, récupérer les identifiants réels des points d'arrêt via `GET /api/trajets/{id}` :
+`POST /api/reservations`
 
 ```json
 {
@@ -180,62 +264,84 @@ Après création du trajet, récupérer les identifiants réels des points d'arr
 }
 ```
 
-Envoyer ce corps à `POST /api/reservations`, en remplaçant les identifiants d'exemple par ceux renvoyés par l'API.
+Les identifiants présentés sont indicatifs. Les identifiants réels des points d'arrêt doivent être récupérés depuis `GET /api/trajets/{id}`.
+
+Le montant de la réservation est calculé automatiquement en fonction du segment et du nombre de places.
 
 ## Règles métier principales
 
-- La capacité d'un véhicule est comprise entre **1 et 8 places** ; les places proposées ne peuvent pas dépasser sa capacité.
-- Un trajet doit avoir au moins **deux arrêts**. Les ordres sont continus à partir de zéro ; les villes ne sont pas répétées et les heures de passage sont strictement croissantes.
-- Le prix cumulé du premier arrêt est **0** ; les prix suivants sont strictement croissants et utilisent au plus deux décimales.
-- Une réservation requiert un trajet publié, un point de montée situé avant le point de descente et un nombre de places disponible suffisant.
-- **Montant total** = (prix cumulé à la descente − prix cumulé à la montée) × nombre de places.
-- Une réservation confirmée ne peut pas être doublée pour le même passager et le même trajet.
-- Les créations de réservations concurrentes sont sérialisées par verrouillage du trajet afin de limiter les risques de surbooking.
-- Une réservation peut être annulée uniquement **plus de 24 heures avant le départ** et lorsque le trajet est encore publié ou complet.
-- L'annulation d'un trajet annule également ses réservations confirmées.
-- Les statuts des trajets incluent `PUBLIE`, `COMPLET`, `ANNULE` et `TERMINE`.
+### Véhicules et trajets
 
-## Organisation du projet
+- La capacité d'un véhicule doit être comprise entre **1 et 8 places**.
+- Le nombre de places proposées ne peut pas dépasser la capacité du véhicule.
+- Chaque trajet doit comporter au minimum deux points d'arrêt.
+- Les points d'arrêt suivent un ordre continu à partir de zéro.
+- Les villes d'un même trajet ne peuvent pas être répétées.
+- Les horaires de passage doivent être strictement croissants.
+- Le prix cumulé du premier arrêt est égal à zéro.
+- Les prix cumulés suivants sont strictement croissants, avec deux décimales au maximum.
+
+### Réservations
+
+- Seuls les trajets publiés disposant de places suffisantes peuvent recevoir de nouvelles réservations.
+- Le point de montée doit précéder le point de descente.
+- Un passager ne peut pas disposer de deux réservations confirmées pour un même trajet.
+- Le nombre de places réservées ne peut pas dépasser les places restantes.
+- Les opérations concurrentes de réservation sont coordonnées par verrouillage pessimiste du trajet.
+
+**Calcul du montant :**
 
 ```text
-docs/                          Collection Postman et diagramme UML
-src/main/java/ma/veltra/
-  controllers/                 Endpoints REST
-  dto/request/                 Données entrantes
-  dto/response/                Données sortantes
-  entities/                    Entités JPA
-  enums/                       Statuts métier
-  exceptions/                  Exceptions et gestionnaire global
-  mappers/                     Interfaces MapStruct
-  repositories/                Accès aux données
-  services/                    Contrats métier
-  services/implementations/    Implémentations transactionnelles
-src/main/resources/
-  application.yaml             Configuration Spring
-  db/migration/                Scripts Flyway
-src/test/java/ma/veltra/        Tests
-compose.yaml                   PostgreSQL local
-.env.example                   Exemple de configuration
-pom.xml                        Configuration Maven
+Montant total =
+(Prix cumulé à la descente - Prix cumulé à la montée)
+× Nombre de places réservées
 ```
 
-## Documentation et validation
+### Annulations et cycle de vie
 
-- [Collection Postman](docs/Veltra.postman_collection.json) : parcours des principales opérations de l'API.
-- [Diagramme de classes UML](docs/Veltra%20Class%20Diagram.drawio.png) : vue du modèle objet.
+- Une réservation peut être annulée uniquement plus de 24 heures avant le départ, lorsque le trajet est `PUBLIE` ou `COMPLET`.
+- L'annulation d'un trajet entraîne l'annulation de ses réservations confirmées.
+- Un trajet peut être clôturé après son départ.
+- Les statuts métier des trajets sont `PUBLIE`, `COMPLET`, `ANNULE` et `TERMINE`.
 
-**Résultats obtenus localement le 20 novembre 2026 :**
+## Structure du projet
 
-| Vérification | Résultat |
-| --- | --- |
-| `mvnw.cmd clean verify` | **BUILD SUCCESS** |
-| Tests automatisés Maven | **46 exécutés, 0 échec, 0 erreur, 0 ignoré** |
-| Audit fonctionnel V5 | **227 PASS, 0 FAIL, 9 SKIP, 2 INFO** |
+```text
+Veltra/
+├── docs/
+│   ├── Veltra.postman_collection.json
+│   └── Veltra Class Diagram.drawio.png
+├── src/
+│   ├── main/
+│   │   ├── java/ma/veltra/
+│   │   │   ├── controllers/
+│   │   │   ├── dto/
+│   │   │   │   ├── request/
+│   │   │   │   └── response/
+│   │   │   ├── entities/
+│   │   │   ├── enums/
+│   │   │   ├── exceptions/
+│   │   │   ├── mappers/
+│   │   │   ├── repositories/
+│   │   │   └── services/
+│   │   │       └── implementations/
+│   │   └── resources/
+│   │       ├── application.yaml
+│   │       └── db/migration/
+│   └── test/java/ma/veltra/
+├── compose.yaml
+├── .env.example
+├── pom.xml
+└── README.md
+```
 
-Les tests non exécutés par l'audit ne sont pas considérés comme validés. Le rapport d'audit est un résultat de vérification locale et n'est pas un livrable versionné du dépôt.
+## Documentation
+
+- [Collection Postman](docs/Veltra.postman_collection.json) : requêtes et scénarios d'utilisation de l'API.
+- [Diagramme de classes UML](docs/Veltra%20Class%20Diagram.drawio.png) : entités, relations et structure du modèle métier.
 
 ## Auteur
 
-Développé par [Mohamed El Masghati](https://github.com/elmasghatimohamed-cmd).
+Développé par **[Mohamed El Masghati](https://github.com/elmasghatimohamed-cmd)**.
 
 Projet réalisé dans un cadre pédagogique.
