@@ -136,12 +136,29 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     private void validerTrajetReservable(Trajet trajet) {
-        if (trajet.getStatut() != StatutTrajet.PUBLIE) {
-            log.warn("Réservation refusée : trajetId={}, statut={}", trajet.getId(), trajet.getStatut());
-            throw new IllegalStateException("Ce trajet n'accepte pas de réservations");
+
+        if (trajet.getStatut() == StatutTrajet.COMPLET) {
+            throw new IllegalStateException(
+                    "Ce trajet est complet. Aucune place disponible."
+            );
         }
+
+        if (trajet.getStatut() != StatutTrajet.PUBLIE) {
+            log.warn(
+                    "Réservation refusée : trajetId={}, statut={}",
+                    trajet.getId(),
+                    trajet.getStatut()
+            );
+
+            throw new IllegalStateException(
+                    "Ce trajet n'accepte pas de réservations"
+            );
+        }
+
         if (!trajet.getDateDepart().isAfter(LocalDateTime.now())) {
-            throw new IllegalStateException("Impossible de réserver un trajet déjà parti");
+            throw new IllegalStateException(
+                    "Impossible de réserver un trajet déjà parti"
+            );
         }
     }
 
